@@ -72,6 +72,29 @@ class _LoadingSkeletonWidgetState extends State<LoadingSkeletonWidget>
   }
 }
 
+/// Convenience alias used by screens for quick shimmer boxes.
+class ShimmerBox extends StatelessWidget {
+  final double height;
+  final double borderRadius;
+  final double? width;
+
+  const ShimmerBox({
+    required this.height,
+    this.borderRadius = 8,
+    this.width,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LoadingSkeletonWidget(
+      width: width ?? double.infinity,
+      height: height,
+      borderRadius: borderRadius,
+    );
+  }
+}
+
 class DashboardSkeletonWidget extends StatelessWidget {
   const DashboardSkeletonWidget({super.key});
 

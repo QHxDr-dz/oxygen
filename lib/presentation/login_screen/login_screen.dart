@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/authentication/presentation/providers/auth_notifier.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_theme.dart';
 import './widgets/login_credentials_box_widget.dart';
@@ -8,17 +10,15 @@ import './widgets/login_form_widget.dart';
 import './widgets/login_header_widget.dart';
 import './widgets/login_language_switcher_widget.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
-  // TODO: Replace with Riverpod AuthNotifier for production
-  bool _isLoading = false;
   String _currentLocale = 'en';
   late AnimationController _bgController;
   late Animation<double> _bgAnimation;
@@ -42,13 +42,23 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _handleLogin(String email, String password) async {
-    setState(() => _isLoading = true);
-    // TODO: Replace with Riverpod AuthRepository.login() call
-    await Future.delayed(const Duration(milliseconds: 1200));
+  Future<void> _handleLogin(String email, String password) async {
+    final success = await ref
+        .read(authNotifierProvider.notifier)
+        .login(email: email, password: password);
     if (!mounted) return;
-    setState(() => _isLoading = false);
-    context.go(AppRoutes.dashboardScreen);
+    if (success) {
+      context.go(AppRoutes.dashboardScreen);
+    } else {
+      final error = ref.read(authNotifierProvider).error ?? 'Login failed';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _toggleLocale() {
@@ -59,6 +69,8 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final isLoading = authState.isLoading;
     final size = MediaQuery.of(context).size;
     final isTablet = size.width >= 600;
 
@@ -66,7 +78,6 @@ class _LoginScreenState extends State<LoginScreen>
       backgroundColor: AppTheme.backgroundDark,
       body: Stack(
         children: [
-          // Animated gradient background
           AnimatedBuilder(
             animation: _bgAnimation,
             builder: (context, child) {
@@ -89,7 +100,6 @@ class _LoginScreenState extends State<LoginScreen>
               );
             },
           ),
-          // Decorative blobs
           Positioned(
             top: -80,
             right: -60,
@@ -137,8 +147,35 @@ class _LoginScreenState extends State<LoginScreen>
                         const LoginHeaderWidget(),
                         const SizedBox(height: 40),
                         LoginFormWidget(
-                          isLoading: _isLoading,
+                          isLoading: isLoading,
                           onLogin: _handleLogin,
+                        ),
+                        const SizedBox(height: 16),
+                        // Register link
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Don\'t have an account? ',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppTheme.textSecondaryDark.withAlpha(
+                                  180,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => context.go(AppRoutes.registerScreen),
+                              child: const Text(
+                                'Sign Up',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 32),
                         const LoginCredentialsBoxWidget(),

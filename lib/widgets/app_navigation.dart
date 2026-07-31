@@ -3,20 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 
-// V3 Liquid Glass BottomNav — BackdropFilter blur + frosted surface + animated pill
-// LOCKED: BackdropFilter blur must not be removed
-
 class _TabSpec {
   final String label;
   final IconData icon;
   final IconData selectedIcon;
-  final int? branchIndex;
+  final int branchIndex;
 
   const _TabSpec({
     required this.label,
     required this.icon,
     required this.selectedIcon,
-    this.branchIndex,
+    required this.branchIndex,
   });
 }
 
@@ -31,7 +28,6 @@ class AppNavigation extends StatefulWidget {
 
 class _AppNavigationState extends State<AppNavigation>
     with SingleTickerProviderStateMixin {
-  int _selectedVisualIndex = 0;
   late AnimationController _pillController;
 
   final List<_TabSpec> _tabs = const [
@@ -45,25 +41,25 @@ class _AppNavigationState extends State<AppNavigation>
       label: 'Workouts',
       icon: Icons.fitness_center_outlined,
       selectedIcon: Icons.fitness_center_rounded,
-      branchIndex: null,
+      branchIndex: 1,
     ),
     _TabSpec(
       label: 'History',
       icon: Icons.history_outlined,
       selectedIcon: Icons.history_rounded,
-      branchIndex: null,
+      branchIndex: 2,
     ),
     _TabSpec(
       label: 'Alerts',
       icon: Icons.notifications_outlined,
       selectedIcon: Icons.notifications_rounded,
-      branchIndex: null,
+      branchIndex: 3,
     ),
     _TabSpec(
       label: 'Profile',
       icon: Icons.person_outline_rounded,
       selectedIcon: Icons.person_rounded,
-      branchIndex: null,
+      branchIndex: 4,
     ),
   ];
 
@@ -82,13 +78,10 @@ class _AppNavigationState extends State<AppNavigation>
     super.dispose();
   }
 
-  void _onTabTap(int visualIndex) {
-    final spec = _tabs[visualIndex];
-    if (spec.branchIndex == null) return; // stub tab — silent ignore
-    setState(() => _selectedVisualIndex = visualIndex);
+  void _onTabTap(int branchIndex) {
     widget.navigationShell.goBranch(
-      spec.branchIndex!,
-      initialLocation: spec.branchIndex == widget.navigationShell.currentIndex,
+      branchIndex,
+      initialLocation: branchIndex == widget.navigationShell.currentIndex,
     );
   }
 
@@ -96,10 +89,10 @@ class _AppNavigationState extends State<AppNavigation>
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final bottomPadding = mediaQuery.padding.bottom;
+    final currentIndex = widget.navigationShell.currentIndex;
 
     return ClipRRect(
       child: BackdropFilter(
-        // LOCKED: BackdropFilter blur — core V3 Liquid Glass technique
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           height: 64 + bottomPadding,
@@ -117,65 +110,59 @@ class _AppNavigationState extends State<AppNavigation>
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: List.generate(_tabs.length, (i) {
                   final tab = _tabs[i];
-                  final isActive = i == _selectedVisualIndex;
-                  final isStub = tab.branchIndex == null;
+                  final isActive = i == currentIndex;
 
                   return Expanded(
                     child: GestureDetector(
-                      onTap: () => _onTabTap(i),
+                      onTap: () => _onTabTap(tab.branchIndex),
                       behavior: HitTestBehavior.opaque,
-                      child: Opacity(
-                        opacity: isStub ? 0.4 : 1.0,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOutCubic,
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                curve: Curves.easeOutCubic,
-                                width: isActive ? 48 : 36,
-                                height: isActive ? 32 : 32,
-                                decoration: isActive
-                                    ? BoxDecoration(
-                                        color: AppTheme.primary.withAlpha(51),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: AppTheme.primary.withAlpha(
-                                            102,
-                                          ),
-                                          width: 0.5,
-                                        ),
-                                      )
-                                    : null,
-                                child: Center(
-                                  child: Icon(
-                                    isActive ? tab.selectedIcon : tab.icon,
-                                    size: 20,
-                                    color: isActive
-                                        ? AppTheme.primary
-                                        : AppTheme.textMutedDark,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isActive
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOutCubic,
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOutCubic,
+                              width: isActive ? 48 : 36,
+                              height: 32,
+                              decoration: isActive
+                                  ? BoxDecoration(
+                                      color: AppTheme.primary.withAlpha(51),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: AppTheme.primary.withAlpha(102),
+                                        width: 0.5,
+                                      ),
+                                    )
+                                  : null,
+                              child: Center(
+                                child: Icon(
+                                  isActive ? tab.selectedIcon : tab.icon,
+                                  size: 20,
                                   color: isActive
                                       ? AppTheme.primary
                                       : AppTheme.textMutedDark,
                                 ),
-                                child: Text(tab.label),
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 2),
+                            AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: isActive
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: isActive
+                                    ? AppTheme.primary
+                                    : AppTheme.textMutedDark,
+                              ),
+                              child: Text(tab.label),
+                            ),
+                          ],
                         ),
                       ),
                     ),

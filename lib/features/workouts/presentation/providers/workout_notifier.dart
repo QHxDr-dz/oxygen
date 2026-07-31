@@ -40,7 +40,7 @@ final workoutsNotifierProvider =
 
 /// Manages a single workout assignment detail.
 class WorkoutDetailNotifier
-    extends AutoDisposeFamilyAsyncNotifier<WorkoutAssignmentEntity, int> {
+    extends FamilyAsyncNotifier<WorkoutAssignmentEntity, int> {
   @override
   Future<WorkoutAssignmentEntity> build(int arg) async {
     return ref.read(getWorkoutDetailUseCaseProvider).call(arg);
@@ -54,8 +54,8 @@ class WorkoutDetailNotifier
   }
 }
 
-final workoutDetailNotifierProvider = AsyncNotifierProvider.autoDispose
-    .family<WorkoutDetailNotifier, WorkoutAssignmentEntity, int>(
+final workoutDetailNotifierProvider = AsyncNotifierProvider.family<
+    WorkoutDetailNotifier, WorkoutAssignmentEntity, int>(
       WorkoutDetailNotifier.new,
     );
 
