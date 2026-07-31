@@ -1,15 +1,18 @@
 import '../../../authentication/domain/entities/auth_entities.dart';
 import '../../../workouts/domain/entities/workout_entities.dart';
+import '../../../subscription/domain/entities/subscription_entity.dart';
 
 /// Aggregated dashboard data entity.
 class DashboardEntity {
   final MemberEntity member;
+  final SubscriptionEntity? subscription;
   final DashboardWorkoutEntity? workout;
   final DashboardStatisticsEntity statistics;
   final DashboardAchievementsEntity achievements;
 
   const DashboardEntity({
     required this.member,
+    this.subscription,
     this.workout,
     required this.statistics,
     required this.achievements,

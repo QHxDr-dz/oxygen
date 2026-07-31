@@ -13,7 +13,8 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationEntity>> {
 
   Future<List<NotificationEntity>> _fetchNotifications() async {
     try {
-      return await ref.read(getNotificationsUseCaseProvider).call();
+      final page = await ref.read(getNotificationsUseCaseProvider).call();
+      return page.notifications;
     } catch (e) {
       AppLogger.warning(
         'NotificationsNotifier: remote failed, trying cache',

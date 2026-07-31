@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../presentation/dashboard_screen/dashboard_screen.dart';
+import '../presentation/history_screen/history_screen.dart';
 import '../presentation/login_screen/login_screen.dart';
 import '../presentation/notifications_screen/notifications_screen.dart';
 import '../presentation/profile_screen/profile_screen.dart';
@@ -78,8 +79,15 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.workoutPlayerScreen,
-      pageBuilder: (context, state) =>
-          _slidePage(const WorkoutPlayerScreen(), state),
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final sessionId = extra?['sessionId'] as int?;
+        final assignmentId = extra?['assignmentId'] as int?;
+        return _slidePage(
+          WorkoutPlayerScreen(sessionId: sessionId, assignmentId: assignmentId),
+          state,
+        );
+      },
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -109,7 +117,7 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: AppRoutes.historyScreen,
               pageBuilder: (context, state) =>
-                  _fadePage(const _HistoryPlaceholder(), state),
+                  _fadePage(const HistoryScreen(), state),
             ),
           ],
         ),
@@ -140,37 +148,3 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
-
-/// Placeholder for history screen (to be implemented in next iteration)
-class _HistoryPlaceholder extends StatelessWidget {
-  const _HistoryPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0F172A),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history_rounded, size: 48, color: Color(0xFF64748B)),
-            SizedBox(height: 16),
-            Text(
-              'History',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFF1F5F9),
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Coming soon',
-              style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

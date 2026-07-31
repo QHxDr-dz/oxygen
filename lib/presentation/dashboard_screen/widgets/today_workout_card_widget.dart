@@ -10,6 +10,7 @@ class TodayWorkoutCardWidget extends StatelessWidget {
   final int estimatedMinutes;
   final String status;
   final bool isRestDay;
+  final VoidCallback? onStartTap;
 
   const TodayWorkoutCardWidget({
     required this.name,
@@ -18,6 +19,7 @@ class TodayWorkoutCardWidget extends StatelessWidget {
     required this.estimatedMinutes,
     required this.status,
     required this.isRestDay,
+    this.onStartTap,
     super.key,
   });
 
@@ -140,7 +142,9 @@ class TodayWorkoutCardWidget extends StatelessWidget {
                 const SizedBox(height: 16),
                 _WorkoutCTAButton(
                   status: status,
-                  onTap: () => context.push(AppRoutes.workoutPlayerScreen),
+                  onTap:
+                      onStartTap ??
+                      () => context.push(AppRoutes.workoutPlayerScreen),
                 ),
               ],
             ),

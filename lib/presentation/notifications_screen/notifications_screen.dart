@@ -15,12 +15,29 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(notificationNotifierProvider.notifier).loadNotifications();
     });
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(notificationNotifierProvider.notifier).loadMore();
+    }
   }
 
   @override
@@ -153,10 +170,28 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       color: AppTheme.primary,
       backgroundColor: AppTheme.surfaceDark,
       child: ListView.builder(
+        controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
         physics: const BouncingScrollPhysics(),
-        itemCount: state.notifications.length,
+        itemCount: state.notifications.length + (state.isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
+          // Loading more indicator at the bottom
+          if (index == state.notifications.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ),
+            );
+          }
+
           final notification = state.notifications[index];
           return _NotificationTile(
             id: notification.id,
@@ -239,6 +274,7 @@ class _NotificationTile extends StatelessWidget {
     return Dismissible(
       key: Key(id),
       direction: DismissDirection.endToStart,
+      onDismissed: (_) => onDelete(),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -249,35 +285,36 @@ class _NotificationTile extends StatelessWidget {
         ),
         child: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
       ),
-      onDismissed: (_) => onDelete(),
       child: GestureDetector(
         onTap: isRead ? null : onMarkRead,
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceDark,
+            color: isRead
+                ? AppTheme.surfaceDark
+                : AppTheme.primary.withAlpha(15),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isRead
                   ? AppTheme.borderDark
                   : AppTheme.primary.withAlpha(60),
-              width: isRead ? 0.5 : 1,
+              width: 0.5,
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: _typeColor.withAlpha(30),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(_typeIcon, color: _typeColor, size: 20),
+                child: Icon(_typeIcon, size: 18, color: _typeColor),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,7 +328,7 @@ class _NotificationTile extends StatelessWidget {
                               fontSize: 14,
                               fontWeight: isRead
                                   ? FontWeight.w500
-                                  : FontWeight.w600,
+                                  : FontWeight.w700,
                               color: AppTheme.textPrimaryDark,
                             ),
                             maxLines: 1,
@@ -302,9 +339,10 @@ class _NotificationTile extends StatelessWidget {
                           Container(
                             width: 8,
                             height: 8,
+                            margin: const EdgeInsets.only(left: 8),
                             decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
                               color: AppTheme.primary,
+                              shape: BoxShape.circle,
                             ),
                           ),
                       ],

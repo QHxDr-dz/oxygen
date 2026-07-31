@@ -8,28 +8,63 @@ import '../../../../core/utils/logger.dart';
 import '../models/notification_model.dart';
 
 /// Remote data source for notification endpoints.
+/// Supports pagination for infinite scroll.
 class NotificationRemoteDataSource {
   final DioClient _dioClient;
   final LocalStorage _localStorage;
 
   const NotificationRemoteDataSource(this._dioClient, this._localStorage);
 
-  Future<List<NotificationModel>> getNotifications() async {
+  /// Fetch paginated notifications. [page] starts at 1.
+  Future<NotificationPageModel> getNotifications({
+    int page = 1,
+    int perPage = 15,
+  }) async {
     final response = await _dioClient.get<Map<String, dynamic>>(
       ApiConstants.notifications,
+      queryParameters: {'page': page, 'per_page': perPage},
     );
     final data = response.data!;
-    final list = data['data'] as List<dynamic>? ?? [];
+
+    // Support both paginated and non-paginated responses
+    final List<dynamic> list;
+    int? lastPage;
+    int? total;
+
+    if (data['data'] is List) {
+      list = data['data'] as List<dynamic>;
+      // Check for pagination meta
+      final meta = data['meta'] as Map<String, dynamic>?;
+      lastPage = (meta?['last_page'] as num?)?.toInt();
+      total = (meta?['total'] as num?)?.toInt();
+    } else if (data['data'] is Map) {
+      // Laravel paginator wraps in data.data
+      final inner = data['data'] as Map<String, dynamic>;
+      list = inner['data'] as List<dynamic>? ?? [];
+      lastPage = (inner['last_page'] as num?)?.toInt();
+      total = (inner['total'] as num?)?.toInt();
+    } else {
+      list = [];
+    }
+
     final models = list
         .map((e) => NotificationModel.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    // Cache
-    await _localStorage.setString(
-      AppConstants.notificationsBox,
-      jsonEncode(list),
+    // Cache first page for offline
+    if (page == 1) {
+      await _localStorage.setString(
+        AppConstants.notificationsBox,
+        jsonEncode(list),
+      );
+    }
+
+    return NotificationPageModel(
+      notifications: models,
+      currentPage: page,
+      lastPage: lastPage ?? 1,
+      total: total ?? models.length,
     );
-    return models;
   }
 
   Future<NotificationCountModel> getNotificationCount() async {
@@ -66,4 +101,21 @@ class NotificationRemoteDataSource {
       return null;
     }
   }
+}
+
+/// Paginated response wrapper.
+class NotificationPageModel {
+  final List<NotificationModel> notifications;
+  final int currentPage;
+  final int lastPage;
+  final int total;
+
+  const NotificationPageModel({
+    required this.notifications,
+    required this.currentPage,
+    required this.lastPage,
+    required this.total,
+  });
+
+  bool get hasNextPage => currentPage < lastPage;
 }

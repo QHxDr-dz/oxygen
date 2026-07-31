@@ -8,6 +8,7 @@ class UserHeaderWidget extends StatelessWidget {
   final String photoUrl;
   final String photoSemanticLabel;
   final int notificationCount;
+  final VoidCallback? onNotificationTap;
 
   const UserHeaderWidget({
     required this.name,
@@ -15,6 +16,7 @@ class UserHeaderWidget extends StatelessWidget {
     required this.photoUrl,
     required this.photoSemanticLabel,
     required this.notificationCount,
+    this.onNotificationTap,
     super.key,
   });
 
@@ -98,7 +100,10 @@ class UserHeaderWidget extends StatelessWidget {
         Stack(
           clipBehavior: Clip.none,
           children: [
-            _HeaderIconButton(icon: Icons.notifications_outlined, onTap: () {}),
+            _HeaderIconButton(
+              icon: Icons.notifications_outlined,
+              onTap: onNotificationTap ?? () {},
+            ),
             if (notificationCount > 0)
               Positioned(
                 top: -2,

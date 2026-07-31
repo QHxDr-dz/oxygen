@@ -1,15 +1,16 @@
-import '../entities/notification_entity.dart';
-import '../repositories/notification_repository.dart';
+import '../../domain/entities/notification_entity.dart';
+import '../../domain/repositories/notification_repository.dart';
 
-/// Use case: Get all notifications.
+/// Use case: fetch paginated notifications.
 class GetNotificationsUseCase {
   final NotificationRepository _repository;
   const GetNotificationsUseCase(this._repository);
 
-  Future<List<NotificationEntity>> call() => _repository.getNotifications();
+  Future<NotificationPageEntity> call({int page = 1, int perPage = 15}) =>
+      _repository.getNotifications(page: page, perPage: perPage);
 }
 
-/// Use case: Get unread notification count.
+/// Use case: get unread notification count.
 class GetNotificationCountUseCase {
   final NotificationRepository _repository;
   const GetNotificationCountUseCase(this._repository);
@@ -17,7 +18,7 @@ class GetNotificationCountUseCase {
   Future<NotificationCountEntity> call() => _repository.getNotificationCount();
 }
 
-/// Use case: Mark a notification as read.
+/// Use case: mark a notification as read.
 class MarkNotificationReadUseCase {
   final NotificationRepository _repository;
   const MarkNotificationReadUseCase(this._repository);
@@ -26,7 +27,7 @@ class MarkNotificationReadUseCase {
       _repository.markAsRead(notificationId);
 }
 
-/// Use case: Delete a notification.
+/// Use case: delete a notification.
 class DeleteNotificationUseCase {
   final NotificationRepository _repository;
   const DeleteNotificationUseCase(this._repository);

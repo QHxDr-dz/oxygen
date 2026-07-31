@@ -39,11 +39,13 @@ final workoutsNotifierProvider =
     );
 
 /// Manages a single workout assignment detail.
-class WorkoutDetailNotifier
-    extends FamilyAsyncNotifier<WorkoutAssignmentEntity, int> {
+class WorkoutDetailNotifier extends AsyncNotifier<WorkoutAssignmentEntity> {
+  WorkoutDetailNotifier(this._arg);
+  final int _arg;
+
   @override
-  Future<WorkoutAssignmentEntity> build(int arg) async {
-    return ref.read(getWorkoutDetailUseCaseProvider).call(arg);
+  Future<WorkoutAssignmentEntity> build() async {
+    return ref.read(getWorkoutDetailUseCaseProvider).call(_arg);
   }
 
   Future<void> refresh(int assignmentId) async {
@@ -54,10 +56,12 @@ class WorkoutDetailNotifier
   }
 }
 
-final workoutDetailNotifierProvider = AsyncNotifierProvider.family<
-    WorkoutDetailNotifier, WorkoutAssignmentEntity, int>(
-      WorkoutDetailNotifier.new,
-    );
+final workoutDetailNotifierProvider =
+    AsyncNotifierProvider.family<
+      WorkoutDetailNotifier,
+      WorkoutAssignmentEntity,
+      int
+    >((arg) => WorkoutDetailNotifier(arg));
 
 /// Manages workout history state.
 class WorkoutHistoryNotifier extends AsyncNotifier<List<WorkoutHistoryEntity>> {

@@ -11,10 +11,23 @@ class NotificationRepositoryImpl implements NotificationRepository {
   const NotificationRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<List<NotificationEntity>> getNotifications() async {
+  Future<NotificationPageEntity> getNotifications({
+    int page = 1,
+    int perPage = 15,
+  }) async {
     try {
-      final models = await _remoteDataSource.getNotifications();
-      return models.map((m) => m.toEntity()).toList();
+      final pageModel = await _remoteDataSource.getNotifications(
+        page: page,
+        perPage: perPage,
+      );
+      return NotificationPageEntity(
+        notifications: pageModel.notifications
+            .map((m) => m.toEntity())
+            .toList(),
+        currentPage: pageModel.currentPage,
+        lastPage: pageModel.lastPage,
+        total: pageModel.total,
+      );
     } on AppException {
       rethrow;
     } catch (e, st) {

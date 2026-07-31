@@ -43,6 +43,7 @@ class DashboardModel {
 
   DashboardEntity toEntity() => DashboardEntity(
     member: member.toEntity(),
+    subscription: subscription?.toEntity(),
     workout: workout?.toEntity(),
     statistics: statistics.toEntity(),
     achievements: achievements.toEntity(),
