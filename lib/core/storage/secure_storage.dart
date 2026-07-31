@@ -4,10 +4,7 @@ import '../utils/logger.dart';
 /// Secure key-value storage backed by Keychain (iOS) / Keystore (Android).
 /// Used exclusively for auth tokens and sensitive credentials.
 class SecureStorage {
-  static const _androidOptions = AndroidOptions(
-    encryptedSharedPreferences: true,
-  );
-
+static const _androidOptions = AndroidOptions();
   static const _iosOptions = IOSOptions(
     accessibility: KeychainAccessibility.first_unlock_this_device,
   );
