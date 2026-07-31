@@ -103,11 +103,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: () => context.push(AppRoutes.settingsScreen),
                       icon: const Icon(
-                        Icons.edit_outlined,
+                        Icons.settings_outlined,
                         color: AppTheme.textSecondaryDark,
                       ),
+                      tooltip: 'Settings',
                     ),
                   ],
                 ),

@@ -40,8 +40,6 @@ class WorkoutSessionState {
 
 /// Manages a live workout session.
 class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
-  int? _arg;
-
   @override
   WorkoutSessionState build() => const WorkoutSessionState();
 

@@ -29,7 +29,14 @@ class Environment {
   static bool get isProduction => current == AppEnvironment.production;
 
   static String get baseUrl {
-    return 'http://192.168.0.166:8000/api/mobile/v1';
+    switch (current) {
+      case AppEnvironment.staging:
+        return 'https://staging.oxygenclub.app/api/mobile/v1';
+      case AppEnvironment.production:
+        return 'https://api.oxygenclub.app/api/mobile/v1';
+      default:
+        return 'http://192.168.0.166:8000/api/mobile/v1';
+    }
   }
 
   static bool get verboseLogging => !isProduction;

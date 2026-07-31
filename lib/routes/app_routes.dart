@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../presentation/about_screen/about_screen.dart';
 import '../presentation/dashboard_screen/dashboard_screen.dart';
+import '../presentation/help_screen/help_screen.dart';
 import '../presentation/history_screen/history_screen.dart';
 import '../presentation/login_screen/login_screen.dart';
 import '../presentation/notifications_screen/notifications_screen.dart';
+import '../presentation/privacy_screen/privacy_screen.dart';
 import '../presentation/profile_screen/profile_screen.dart';
 import '../presentation/register_screen/register_screen.dart';
+import '../presentation/settings_screen/settings_screen.dart';
 import '../presentation/splash_screen/splash_screen.dart';
 import '../presentation/subscription_screen/subscription_screen.dart';
+import '../presentation/workout_detail_screen/workout_detail_screen.dart';
 import '../presentation/workout_player_screen/workout_player_screen.dart';
 import '../presentation/workouts_screen/workouts_screen.dart';
 import '../widgets/app_scaffold.dart';
@@ -27,6 +32,9 @@ class AppRoutes {
   static const String subscriptionScreen = '/subscription';
   static const String profileScreen = '/profile';
   static const String settingsScreen = '/settings';
+  static const String aboutScreen = '/about';
+  static const String privacyScreen = '/privacy';
+  static const String helpScreen = '/help';
 }
 
 CustomTransitionPage _fadePage(Widget child, GoRouterState state) {
@@ -88,6 +96,34 @@ final GoRouter appRouter = GoRouter(
           state,
         );
       },
+    ),
+    GoRoute(
+      path: AppRoutes.workoutDetailScreen,
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final assignmentId = extra?['assignmentId'] as int? ?? 0;
+        return _slidePage(
+          WorkoutDetailScreen(assignmentId: assignmentId),
+          state,
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.settingsScreen,
+      pageBuilder: (context, state) =>
+          _slidePage(const SettingsScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.aboutScreen,
+      pageBuilder: (context, state) => _slidePage(const AboutScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.privacyScreen,
+      pageBuilder: (context, state) => _slidePage(const PrivacyScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.helpScreen,
+      pageBuilder: (context, state) => _slidePage(const HelpScreen(), state),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {

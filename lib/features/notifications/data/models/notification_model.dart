@@ -1,6 +1,7 @@
 import '../../domain/entities/notification_entity.dart';
 
 /// Data model for a notification.
+/// Supports both flat and nested (data.data) API response structures.
 class NotificationModel {
   final String id;
   final String title;
@@ -19,14 +20,26 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    // Support nested structures: json['data']['data'] or json['data'] or flat json
+    final Map<String, dynamic> payload = (json['data'] is Map<String, dynamic>)
+        ? (json['data'] as Map<String, dynamic>)
+        : json;
+
     return NotificationModel(
-      id: json['id'] as String,
-      title: json['title'] as String? ?? '',
-      message: json['message'] as String? ?? '',
-      type: json['type'] as String? ?? 'general',
-      readAt: json['read_at'] as String?,
+      id: (payload['id'] ?? json['id'] ?? '').toString(),
+      title: payload['title'] as String? ?? json['title'] as String? ?? '',
+      message:
+          payload['message'] as String? ??
+          payload['body'] as String? ??
+          json['message'] as String? ??
+          json['body'] as String? ??
+          '',
+      type: payload['type'] as String? ?? json['type'] as String? ?? 'general',
+      readAt: payload['read_at'] as String? ?? json['read_at'] as String?,
       createdAt:
-          json['created_at'] as String? ?? DateTime.now().toIso8601String(),
+          payload['created_at'] as String? ??
+          json['created_at'] as String? ??
+          DateTime.now().toIso8601String(),
     );
   }
 
@@ -38,6 +51,24 @@ class NotificationModel {
     'read_at': readAt,
     'created_at': createdAt,
   };
+
+  NotificationModel copyWith({
+    String? id,
+    String? title,
+    String? message,
+    String? type,
+    String? readAt,
+    String? createdAt,
+  }) {
+    return NotificationModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      type: type ?? this.type,
+      readAt: readAt ?? this.readAt,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 
   NotificationEntity toEntity() {
     DateTime parsedDate;
@@ -65,9 +96,12 @@ class NotificationCountModel {
   const NotificationCountModel({required this.total, required this.unread});
 
   factory NotificationCountModel.fromJson(Map<String, dynamic> json) {
+    final payload = (json['data'] is Map<String, dynamic>)
+        ? json['data'] as Map<String, dynamic>
+        : json;
     return NotificationCountModel(
-      total: (json['total'] as num?)?.toInt() ?? 0,
-      unread: (json['unread'] as num?)?.toInt() ?? 0,
+      total: (payload['total'] as num?)?.toInt() ?? 0,
+      unread: (payload['unread'] as num?)?.toInt() ?? 0,
     );
   }
 
