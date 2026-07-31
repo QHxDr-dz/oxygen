@@ -110,7 +110,7 @@ class AuthResponseModel {
 
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
     return AuthResponseModel(
-      token: json['token'] as String,
+      token: json['token'] as String? ?? '',
       user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
       member: json['member'] != null
           ? MemberModel.fromJson(json['member'] as Map<String, dynamic>)
@@ -123,4 +123,12 @@ class AuthResponseModel {
     user: user.toEntity(),
     member: member?.toEntity(),
   );
+
+  AuthResponseModel copyWithToken(String token) {
+    return AuthResponseModel(
+      token: token.isNotEmpty ? token : this.token,
+      user: user,
+      member: member,
+    );
+  }
 }

@@ -67,9 +67,9 @@ class AuthRemoteDataSource {
       ApiConstants.me,
     );
     final data = response.data!;
-    // /me may return data wrapped or flat
     final payload = data['data'] as Map<String, dynamic>? ?? data;
-    final model = AuthResponseModel.fromJson(payload);
+    final currentToken = await _secureStorage.read(AppConstants.authTokenKey) ?? '';
+    final model = AuthResponseModel.fromJson(payload).copyWithToken(currentToken);
 
     // Refresh local cache
     await _localStorage.setJson(AppConstants.userDataKey, model.user.toJson());
