@@ -36,11 +36,12 @@ class GetCurrentSessionUseCase {
 }
 
 /// Use case: Complete a set with performance data.
+/// Returns the updated session so the UI can sync progress from the backend.
 class CompleteSetUseCase {
   final WorkoutRepository _repository;
   const CompleteSetUseCase(this._repository);
 
-  Future<void> call({
+  Future<WorkoutSessionEntity> call({
     required int sessionId,
     required int setId,
     required int reps,

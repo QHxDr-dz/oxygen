@@ -67,7 +67,7 @@ class WorkoutRemoteDataSource {
     return WorkoutSessionModel.fromJson(payload as Map<String, dynamic>);
   }
 
-  Future<void> completeSet({
+  Future<WorkoutSessionModel> completeSet({
     required int sessionId,
     required int setId,
     required int reps,
@@ -76,10 +76,19 @@ class WorkoutRemoteDataSource {
   }) async {
     final body = <String, dynamic>{'reps': reps, 'weight': weight};
     if (duration != null) body['duration'] = duration;
-    await _dioClient.post<void>(
+    // POST the set completion and return the updated session from the response.
+    final response = await _dioClient.post<Map<String, dynamic>>(
       ApiConstants.completeSet(sessionId, setId),
       data: body,
     );
+    // Backend returns the updated session inside data.session or data directly.
+    final data = response.data!;
+    final sessionPayload =
+        data['data']?['session'] as Map<String, dynamic>? ??
+        data['session'] as Map<String, dynamic>? ??
+        data['data'] as Map<String, dynamic>? ??
+        data;
+    return WorkoutSessionModel.fromJson(sessionPayload);
   }
 
   Future<WorkoutSessionModel> finishWorkout(int sessionId) async {

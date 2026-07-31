@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,21 +35,21 @@ void main() async {
   await localStorage.init();
   AppLogger.info('App starting', tag: 'Main');
 
-  // 🚨 CRITICAL: Device orientation lock - DO NOT REMOVE
-  Future.wait([
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
-  ]).then((value) {
-    GoRouter.optionURLReflectsImperativeAPIs = true;
-    runApp(
-      ProviderScope(
-        overrides: [
-          // Override localStorageProvider with the initialized instance
-          localStorageProvider.overrideWithValue(localStorage),
-        ],
-        child: const MyApp(),
-      ),
-    );
-  });
+  // 🚨 CRITICAL: Device orientation lock - only on mobile, not web
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  }
+
+  GoRouter.optionURLReflectsImperativeAPIs = true;
+  runApp(
+    ProviderScope(
+      overrides: [
+        // Override localStorageProvider with the initialized instance
+        localStorageProvider.overrideWithValue(localStorage),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends ConsumerStatefulWidget {

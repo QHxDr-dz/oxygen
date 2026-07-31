@@ -180,6 +180,9 @@ class ExerciseDetailModel {
   final int restSeconds;
   final ExerciseModel exercise;
 
+  /// Individual session sets with real backend IDs (populated from session response).
+  final List<SessionSetModel> sessionSets;
+
   const ExerciseDetailModel({
     required this.id,
     required this.exerciseId,
@@ -187,9 +190,12 @@ class ExerciseDetailModel {
     required this.reps,
     required this.restSeconds,
     required this.exercise,
+    this.sessionSets = const [],
   });
 
   factory ExerciseDetailModel.fromJson(Map<String, dynamic> json) {
+    // Parse session_sets array if present (returned by session endpoints).
+    final rawSets = json['session_sets'] as List<dynamic>? ?? [];
     return ExerciseDetailModel(
       id: json['id'] as int,
       exerciseId: (json['exercise_id'] as num?)?.toInt() ?? 0,
@@ -199,6 +205,9 @@ class ExerciseDetailModel {
       exercise: ExerciseModel.fromJson(
         json['exercise'] as Map<String, dynamic>,
       ),
+      sessionSets: rawSets
+          .map((s) => SessionSetModel.fromJson(s as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -209,6 +218,43 @@ class ExerciseDetailModel {
     reps: reps,
     restSeconds: restSeconds,
     exercise: exercise.toEntity(),
+    sessionSets: sessionSets.map((s) => s.toEntity()).toList(),
+  );
+}
+
+/// Data model for a single set within a workout session.
+/// The [id] is the real backend set ID used in POST /workouts/session/{session}/sets/{set}/complete.
+class SessionSetModel {
+  final int id;
+  final int setNumber;
+  final bool completed;
+  final int? actualReps;
+  final double? actualWeight;
+
+  const SessionSetModel({
+    required this.id,
+    required this.setNumber,
+    required this.completed,
+    this.actualReps,
+    this.actualWeight,
+  });
+
+  factory SessionSetModel.fromJson(Map<String, dynamic> json) {
+    return SessionSetModel(
+      id: json['id'] as int,
+      setNumber: (json['set_number'] as num?)?.toInt() ?? 1,
+      completed: json['completed'] as bool? ?? false,
+      actualReps: (json['actual_reps'] as num?)?.toInt(),
+      actualWeight: (json['actual_weight'] as num?)?.toDouble(),
+    );
+  }
+
+  SessionSetEntity toEntity() => SessionSetEntity(
+    id: id,
+    setNumber: setNumber,
+    completed: completed,
+    actualReps: actualReps,
+    actualWeight: actualWeight,
   );
 }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +32,8 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
   bool _isSessionComplete = false;
   int _elapsedSeconds = 0;
   late Timer _elapsedTimer;
+  // Each entry maps exercise metadata + a list of real backend set IDs.
+  // 'setIds' is List<int> — index i holds the backend set ID for set i.
   List<Map<String, dynamic>> _exercises = [];
   bool _initialized = false;
 
@@ -40,41 +43,70 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    if (!kIsWeb) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
     _startElapsedTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) => _initSession());
   }
 
+  /// Problem 1 fix: use initSession() which checks for an existing session
+  /// before ever calling startWorkout(). This prevents duplicate sessions.
   Future<void> _initSession() async {
     if (widget.assignmentId != null) {
-      await _sessionNotifier.startWorkout(widget.assignmentId!);
+      // initSession handles the full priority chain:
+      // getCurrentSession → getWorkoutSession → startWorkout
+      await _sessionNotifier.initSession(widget.assignmentId!);
+    } else if (widget.sessionId != null) {
+      // A specific session ID was passed — load it directly via current session.
+      await _sessionNotifier.loadSession(widget.sessionId!);
     }
+    _buildExerciseList();
+  }
+
+  /// Problem 2 fix: build the exercise list using real backend set IDs from
+  /// sessionSets, not exercise.id. Each exercise entry carries a 'setIds'
+  /// list where setIds[i] is the backend ID for the i-th set.
+  void _buildExerciseList() {
     final session = ref.read(workoutSessionNotifierProvider).session;
     if (session != null && session.exercises.isNotEmpty) {
       setState(() {
-        _exercises = session.exercises
-            .map(
-              (e) => {
-                'id': e.id,
-                'name': e.exercise.name,
-                'targetMuscle': e.exercise.targetMuscle,
-                'equipment': e.exercise.equipment,
-                'sets': e.sets,
-                'reps': '${e.reps}',
-                'weight': 0.0,
-                'restSeconds': e.restSeconds,
-                'gifUrl': e.exercise.image,
-                'gifSemanticLabel': 'Exercise animation for ${e.exercise.name}',
-                'instructions': e.exercise.description ?? '',
-                'completedSets': <int>[],
-              },
-            )
-            .toList();
+        _exercises = session.exercises.map((e) {
+          // Build the list of real backend set IDs for this exercise.
+          // If the session returned session_sets, use those IDs in order.
+          // Otherwise fall back to an empty list (completeSet will be skipped).
+          final setIds = e.sessionSets.isNotEmpty
+              ? (e.sessionSets.toList()
+                  ..sort((a, b) => a.setNumber.compareTo(b.setNumber)))
+              : <dynamic>[];
+
+          return {
+            'exerciseDetailId': e.id, // pivot row ID (not used for API calls)
+            'name': e.exercise.name,
+            'targetMuscle': e.exercise.targetMuscle,
+            'equipment': e.exercise.equipment,
+            // setIds[i] = real backend set ID for set index i
+            'setIds': setIds.map((s) {
+              if (s is int) return s;
+              // s is SessionSetEntity
+              return (s as dynamic).id as int;
+            }).toList(),
+            'sets': e.sets,
+            'reps': '${e.reps}',
+            'weight': 0.0,
+            'restSeconds': e.restSeconds,
+            'gifUrl': e.exercise.image,
+            'gifSemanticLabel': 'Exercise animation for ${e.exercise.name}',
+            'instructions': e.exercise.description ?? '',
+            'completedSets': <int>[],
+          };
+        }).toList();
         _initialized = true;
       });
     } else {
+      // No session data — show empty state (no demo data, per constraints).
       setState(() {
-        _exercises = _demoExercises;
+        _exercises = [];
         _initialized = true;
       });
     }
@@ -89,7 +121,9 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
   @override
   void dispose() {
     _elapsedTimer.cancel();
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    if (!kIsWeb) {
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    }
     super.dispose();
   }
 
@@ -102,28 +136,57 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
   Map<String, dynamic> get _currentExercise =>
       _exercises.isNotEmpty ? _exercises[_currentExerciseIndex] : {};
 
+  /// Problem 5 fix: use backend completionPercentage for session-level progress.
+  double get _sessionProgress {
+    final session = ref.read(workoutSessionNotifierProvider).session;
+    if (session != null && session.totalSets > 0) {
+      return session.completionPercentage / 100.0;
+    }
+    // Fallback to local count only if backend data is unavailable.
+    final total = _exercises.fold(
+      0,
+      (sum, e) => sum + (e['sets'] as int? ?? 0),
+    );
+    if (total == 0) return 0.0;
+    final completed = _exercises.fold(
+      0,
+      (sum, e) => sum + (e['completedSets'] as List).length,
+    );
+    return completed / total;
+  }
+
   int get _totalSets =>
       _exercises.fold(0, (sum, e) => sum + (e['sets'] as int? ?? 0));
 
   int get _completedSets =>
       _exercises.fold(0, (sum, e) => sum + (e['completedSets'] as List).length);
 
-  void _completeSet() {
+  Future<void> _completeSet() async {
     final exercise = _exercises[_currentExerciseIndex];
     final completedSets = exercise['completedSets'] as List<int>;
-    final setId = exercise['id'] as int? ?? 0;
     final weight = exercise['weight'] as double? ?? 0.0;
     final reps =
         int.tryParse((exercise['reps'] as String? ?? '10').split('-').first) ??
         10;
 
+    // Problem 2 fix: use the real backend set ID from setIds[_currentSetIndex].
+    final setIds = exercise['setIds'] as List<int>? ?? [];
+    final realSetId = setIds.length > _currentSetIndex
+        ? setIds[_currentSetIndex]
+        : 0;
+
     if (!completedSets.contains(_currentSetIndex)) {
       setState(() => completedSets.add(_currentSetIndex));
     }
 
-    // Fire-and-forget API call — UI updates immediately without waiting
-    if (setId > 0) {
-      _sessionNotifier.completeSet(setId: setId, reps: reps, weight: weight);
+    // Problem 3 fix: await the call — the notifier updates session state from
+    // the backend response, keeping completionPercentage in sync.
+    if (realSetId > 0) {
+      await _sessionNotifier.completeSet(
+        setId: realSetId,
+        reps: reps,
+        weight: weight,
+      );
     }
 
     final totalSets = exercise['sets'] as int? ?? 0;
@@ -188,6 +251,11 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
   }
 
   void _showFinishEarlyDialog() {
+    // Problem 5 fix: show backend-sourced completed/total counts.
+    final session = ref.read(workoutSessionNotifierProvider).session;
+    final completedCount = session?.completedSets ?? _completedSets;
+    final totalCount = session?.totalSets ?? _totalSets;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -204,7 +272,7 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
           ),
         ),
         content: Text(
-          'You have completed $_completedSets of $_totalSets sets. Your progress will be saved.',
+          'You have completed $completedCount of $totalCount sets. Your progress will be saved.',
           style: const TextStyle(
             color: AppTheme.textSecondaryDark,
             fontSize: 14,
@@ -240,7 +308,10 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized) {
+    // Watch the session state so the widget rebuilds when backend data arrives.
+    final sessionState = ref.watch(workoutSessionNotifierProvider);
+
+    if (!_initialized || sessionState.isLoading) {
       return const Scaffold(
         backgroundColor: AppTheme.backgroundDark,
         body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
@@ -248,12 +319,17 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
     }
 
     if (_isSessionComplete) {
-      final workoutName = _exercises.isNotEmpty
-          ? (_exercises.first['name'] as String? ?? 'Workout')
-          : 'Workout';
+      final session = sessionState.session;
+      final workoutName =
+          session?.workoutDay?.name ??
+          (_exercises.isNotEmpty
+              ? (_exercises.first['name'] as String? ?? 'Workout')
+              : 'Workout');
+      // Problem 5 fix: use backend totalSets for completion screen.
+      final totalSets = session?.totalSets ?? _totalSets;
       return WorkoutSessionCompleteWidget(
         workoutName: workoutName,
-        totalSets: _totalSets,
+        totalSets: totalSets,
         elapsedSeconds: _elapsedSeconds,
         onClose: () => context.pop(),
       );
@@ -283,7 +359,8 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
 
     final exercise = _currentExercise;
     final totalSets = exercise['sets'] as int? ?? 0;
-    final sessionProgress = _totalSets > 0 ? _completedSets / _totalSets : 0.0;
+    // Problem 5 fix: progress comes from backend session data.
+    final sessionProgress = _sessionProgress;
     final workoutName = exercise['name'] as String? ?? 'Workout';
 
     return Scaffold(
@@ -349,41 +426,4 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
       ),
     );
   }
-
-  static final List<Map<String, dynamic>> _demoExercises = [
-    {
-      'id': 0,
-      'name': 'Barbell Bench Press',
-      'targetMuscle': 'Chest',
-      'equipment': 'Barbell',
-      'sets': 4,
-      'reps': '8-10',
-      'weight': 80.0,
-      'restSeconds': 90,
-      'gifUrl':
-          'https://images.pexels.com/photos/4164761/pexels-photo-4164761.jpeg?auto=compress&cs=tinysrgb&w=400',
-      'gifSemanticLabel':
-          'Man performing barbell bench press on flat bench with spotter',
-      'instructions':
-          'Lie on a flat bench. Grip the bar shoulder-width apart. Lower the bar to your mid-chest, then press up explosively.',
-      'completedSets': <int>[],
-    },
-    {
-      'id': 0,
-      'name': 'Incline Dumbbell Press',
-      'targetMuscle': 'Upper Chest',
-      'equipment': 'Dumbbells',
-      'sets': 3,
-      'reps': '10-12',
-      'weight': 30.0,
-      'restSeconds': 75,
-      'gifUrl':
-          'https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=400',
-      'gifSemanticLabel':
-          'Muscular man performing incline dumbbell press on incline bench',
-      'instructions':
-          'Set bench to 30-45 degree incline. Press dumbbells up and slightly inward.',
-      'completedSets': <int>[],
-    },
-  ];
 }

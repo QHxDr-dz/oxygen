@@ -504,6 +504,23 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
   }
 
   Widget _buildBottomBar(WorkoutAssignmentEntity assignment) {
+    // Problem 4 fix: if the assignment already has an in-progress session,
+    // show "Continue Workout" and resume it — never create a new session.
+    final hasActiveSession = assignment.latestSession?.isInProgress ?? false;
+    final isCompleted = assignment.completed;
+
+    final buttonLabel = isCompleted
+        ? 'Program Completed'
+        : hasActiveSession
+        ? 'Continue Workout'
+        : 'Start Workout';
+
+    final buttonIcon = isCompleted
+        ? Icons.check_circle_rounded
+        : hasActiveSession
+        ? Icons.play_circle_filled_rounded
+        : Icons.play_arrow_rounded;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       decoration: BoxDecoration(
@@ -515,27 +532,25 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          onPressed: assignment.completed
+          onPressed: isCompleted
               ? null
               : () {
+                  // Pass assignmentId — WorkoutPlayerScreen.initSession()
+                  // will detect the existing session and resume it without
+                  // creating a duplicate (Problem 4 fix).
                   context.push(
                     AppRoutes.workoutPlayerScreen,
                     extra: {'assignmentId': assignment.id},
                   );
                 },
-          icon: Icon(
-            assignment.completed
-                ? Icons.check_circle_rounded
-                : Icons.play_arrow_rounded,
-            size: 20,
-          ),
-          label: Text(
-            assignment.completed ? 'Program Completed' : 'Start Workout',
-          ),
+          icon: Icon(buttonIcon, size: 20),
+          label: Text(buttonLabel),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor: assignment.completed
+            backgroundColor: isCompleted
                 ? AppTheme.success
+                : hasActiveSession
+                ? AppTheme.accent
                 : AppTheme.primary,
           ),
         ),

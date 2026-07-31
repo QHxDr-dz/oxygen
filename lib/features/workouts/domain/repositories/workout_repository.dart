@@ -19,7 +19,8 @@ abstract class WorkoutRepository {
   Future<WorkoutSessionEntity?> getWorkoutSession(int assignmentId);
 
   /// Mark a set as completed with performance data.
-  Future<void> completeSet({
+  /// Returns the updated session so the UI can sync progress from the backend.
+  Future<WorkoutSessionEntity> completeSet({
     required int sessionId,
     required int setId,
     required int reps,

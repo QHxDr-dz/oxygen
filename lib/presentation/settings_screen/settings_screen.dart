@@ -83,7 +83,7 @@ class SettingsScreen extends ConsumerWidget {
                           trailing: Switch(
                             value: true,
                             onChanged: (_) {},
-                            activeColor: AppTheme.primary,
+                            activeThumbColor: AppTheme.primary,
                           ),
                           onTap: null,
                         ),

@@ -96,7 +96,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<void> completeSet({
+  Future<WorkoutSessionEntity> completeSet({
     required int sessionId,
     required int setId,
     required int reps,
@@ -104,13 +104,14 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     int? duration,
   }) async {
     try {
-      await _remoteDataSource.completeSet(
+      final model = await _remoteDataSource.completeSet(
         sessionId: sessionId,
         setId: setId,
         reps: reps,
         weight: weight,
         duration: duration,
       );
+      return model.toEntity();
     } on AppException {
       rethrow;
     } catch (e, st) {

@@ -43,7 +43,57 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
   @override
   WorkoutSessionState build() => const WorkoutSessionState();
 
-  /// Start a workout from an assignment ID.
+  /// Initialise a session for the given assignment.
+  ///
+  /// Priority order (Problem 1 fix):
+  ///   1. If there is already a global current session → use it.
+  ///   2. Else if the assignment already has a session → load it.
+  ///   3. Only if neither exists → call startWorkout().
+  ///
+  /// This prevents duplicate sessions from being created.
+  Future<void> initSession(int assignmentId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      // Step 1: Check for a globally active session.
+      final current = await ref.read(getCurrentSessionUseCaseProvider).call();
+      if (current != null) {
+        AppLogger.info(
+          'WorkoutSessionNotifier: reusing current session ${current.id}',
+          tag: 'Workout',
+        );
+        state = state.copyWith(session: current, isLoading: false);
+        return;
+      }
+
+      // Step 2: Check if this assignment already has a session.
+      final existing = await ref
+          .read(workoutRepositoryProvider)
+          .getWorkoutSession(assignmentId);
+      if (existing != null) {
+        AppLogger.info(
+          'WorkoutSessionNotifier: reusing assignment session ${existing.id}',
+          tag: 'Workout',
+        );
+        state = state.copyWith(session: existing, isLoading: false);
+        return;
+      }
+
+      // Step 3: No existing session — start a new one.
+      AppLogger.info(
+        'WorkoutSessionNotifier: starting new session for assignment $assignmentId',
+        tag: 'Workout',
+      );
+      final newSession = await ref
+          .read(startWorkoutUseCaseProvider)
+          .call(assignmentId);
+      state = state.copyWith(session: newSession, isLoading: false);
+    } catch (e) {
+      AppLogger.error('WorkoutSessionNotifier.initSession failed', error: e);
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// Start a workout from an assignment ID (only call when no session exists).
   Future<void> startWorkout(int assignmentId) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -75,7 +125,11 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
     }
   }
 
-  /// Complete a single set — updates UI immediately without full reload.
+  /// Complete a single set and sync session state from the backend response.
+  ///
+  /// Problem 3 fix: after the API call succeeds, the returned session entity
+  /// (with updated completion_percentage, completed_sets, etc.) replaces the
+  /// local state — no fake local progress.
   Future<void> completeSet({
     required int setId,
     required int reps,
@@ -85,11 +139,13 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
     final sessionId = state.session?.id;
     if (sessionId == null) return;
 
+    // Mark set as in-flight so the UI can show a spinner if desired.
     final newCompletingIds = {...state.completingSetIds, setId};
     state = state.copyWith(completingSetIds: newCompletingIds);
 
     try {
-      await ref
+      // Problem 3 fix: use the returned updated session to sync UI.
+      final updatedSession = await ref
           .read(completeSetUseCaseProvider)
           .call(
             sessionId: sessionId,
@@ -99,12 +155,17 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
             duration: duration,
           );
       AppLogger.info(
-        'WorkoutSessionNotifier: set $setId completed',
+        'WorkoutSessionNotifier: set $setId completed, '
+        'progress=${updatedSession.completionPercentage}%',
         tag: 'Workout',
+      );
+      final updated = <int>{...state.completingSetIds}..remove(setId);
+      state = state.copyWith(
+        session: updatedSession,
+        completingSetIds: updated,
       );
     } catch (e) {
       AppLogger.error('WorkoutSessionNotifier.completeSet failed', error: e);
-    } finally {
       final updated = <int>{...state.completingSetIds}..remove(setId);
       state = state.copyWith(completingSetIds: updated);
     }

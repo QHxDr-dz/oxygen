@@ -83,6 +83,10 @@ class ExerciseDetailEntity {
   final int restSeconds;
   final ExerciseEntity exercise;
 
+  /// Individual session set objects (populated when loading a session).
+  /// Each entry carries the real backend set ID needed for completeSet().
+  final List<SessionSetEntity> sessionSets;
+
   const ExerciseDetailEntity({
     required this.id,
     required this.exerciseId,
@@ -90,6 +94,7 @@ class ExerciseDetailEntity {
     required this.reps,
     required this.restSeconds,
     required this.exercise,
+    this.sessionSets = const [],
   });
 }
 
@@ -171,6 +176,24 @@ class SetCompletionEntity {
     required this.reps,
     required this.weight,
     this.duration,
+  });
+}
+
+/// Represents a single set within a workout session, as returned by the backend.
+/// The [id] is the real backend set ID required by POST /workouts/session/{session}/sets/{set}/complete.
+class SessionSetEntity {
+  final int id;
+  final int setNumber;
+  final bool completed;
+  final int? actualReps;
+  final double? actualWeight;
+
+  const SessionSetEntity({
+    required this.id,
+    required this.setNumber,
+    required this.completed,
+    this.actualReps,
+    this.actualWeight,
   });
 }
 
