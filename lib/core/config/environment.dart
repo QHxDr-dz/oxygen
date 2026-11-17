@@ -31,11 +31,11 @@ class Environment {
   static String get baseUrl {
     switch (current) {
       case AppEnvironment.staging:
-        return 'https://staging.oxygenclub.app/api/mobile/v1';
+        return 'http://127.0.0.1:8000/api/mobile/v1';
       case AppEnvironment.production:
-        return 'https://api.oxygenclub.app/api/mobile/v1';
+        return 'http://127.0.0.1:8000/api/mobile/v1';
       default:
-        return 'http://192.168.0.166:8000/api/mobile/v1';
+        return 'http://127.0.0.1:8000/api/mobile/v1';
     }
   }
 
