@@ -15,7 +15,7 @@ class CustomErrorWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppTheme.backgroundDark,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -34,8 +34,8 @@ class CustomErrorWidget extends StatelessWidget {
                   "Something went wrong",
                   style: const TextStyle(
                     fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF262626),
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimaryDark,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -45,7 +45,7 @@ class CustomErrorWidget extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
-                      color: Color(0xFF525252), // neutral-600
+                      color: AppTheme.textSecondaryDark,
                     ),
                   ),
                 ),
@@ -56,7 +56,7 @@ class CustomErrorWidget extends StatelessWidget {
                     if (canBeBack) {
                       context.pop();
                     } else {
-                      context.goNamed(AppRoutes.initial);
+                      context.go(AppRoutes.initial);
                     }
                   },
                   icon: const Icon(

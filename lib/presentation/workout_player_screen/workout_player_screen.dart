@@ -58,8 +58,8 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
       // getCurrentSession → getWorkoutSession → startWorkout
       await _sessionNotifier.initSession(widget.assignmentId!);
     } else if (widget.sessionId != null) {
-      // A specific session ID was passed — load it directly via current session.
-      await _sessionNotifier.loadSession(widget.sessionId!);
+      // Resolve a session ID via existing endpoints (no invented backend API).
+      await _sessionNotifier.resolveSessionById(widget.sessionId!);
     }
     _buildExerciseList();
   }
@@ -175,18 +175,29 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
         ? setIds[_currentSetIndex]
         : 0;
 
-    if (!completedSets.contains(_currentSetIndex)) {
-      setState(() => completedSets.add(_currentSetIndex));
-    }
-
-    // Problem 3 fix: await the call — the notifier updates session state from
-    // the backend response, keeping completionPercentage in sync.
+    // Only advance locally after the backend confirms the completion.
     if (realSetId > 0) {
-      await _sessionNotifier.completeSet(
+      final confirmed = await _sessionNotifier.completeSet(
         setId: realSetId,
         reps: reps,
         weight: weight,
       );
+      if (!confirmed) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not save that set. Please try again.'),
+              backgroundColor: AppTheme.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    if (!completedSets.contains(_currentSetIndex)) {
+      setState(() => completedSets.add(_currentSetIndex));
     }
 
     final totalSets = exercise['sets'] as int? ?? 0;
@@ -210,8 +221,22 @@ class _WorkoutPlayerScreenState extends ConsumerState<WorkoutPlayerScreen> {
   }
 
   Future<void> _finishSession() async {
+    final finished = await _sessionNotifier.finishWorkout();
+    if (finished == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not finish the workout. Please try again.'),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      // Keep the timer running so the user can retry.
+      if (!_elapsedTimer.isActive) _startElapsedTimer();
+      return;
+    }
     _elapsedTimer.cancel();
-    await _sessionNotifier.finishWorkout();
     if (mounted) {
       setState(() {
         _isSessionComplete = true;

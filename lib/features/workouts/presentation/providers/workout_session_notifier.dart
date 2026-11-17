@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/workout_entities.dart';
 import '../../../providers.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/logger.dart';
 
 /// State for an active workout session.
@@ -89,7 +90,7 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
       state = state.copyWith(session: newSession, isLoading: false);
     } catch (e) {
       AppLogger.error('WorkoutSessionNotifier.initSession failed', error: e);
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: friendlyErrorMessage(e));
     }
   }
 
@@ -107,7 +108,41 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
       );
     } catch (e) {
       AppLogger.error('WorkoutSessionNotifier.startWorkout failed', error: e);
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: friendlyErrorMessage(e));
+    }
+  }
+
+  /// Resolve a session ID to an active session without assuming the backend
+  /// exposes a "session by ID" endpoint. We first try the global current
+  /// session, then map the ID to its assignment via the workouts list.
+  Future<void> resolveSessionById(int sessionId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final current = await ref.read(getCurrentSessionUseCaseProvider).call();
+      if (current != null && current.id == sessionId) {
+        state = state.copyWith(session: current, isLoading: false);
+        return;
+      }
+
+      final assignments = await ref.read(getWorkoutsUseCaseProvider).call();
+      final assignment = assignments
+          .where((a) => a.latestSession?.id == sessionId)
+          .firstOrNull;
+      if (assignment != null) {
+        await initSession(assignment.id);
+        return;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        error: 'This workout session is no longer available.',
+      );
+    } catch (e) {
+      AppLogger.error(
+        'WorkoutSessionNotifier.resolveSessionById failed',
+        error: e,
+      );
+      state = state.copyWith(isLoading: false, error: friendlyErrorMessage(e));
     }
   }
 
@@ -121,7 +156,7 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
       state = state.copyWith(session: session, isLoading: false);
     } catch (e) {
       AppLogger.error('WorkoutSessionNotifier.loadSession failed', error: e);
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: friendlyErrorMessage(e));
     }
   }
 
@@ -130,14 +165,15 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
   /// Problem 3 fix: after the API call succeeds, the returned session entity
   /// (with updated completion_percentage, completed_sets, etc.) replaces the
   /// local state — no fake local progress.
-  Future<void> completeSet({
+  /// Returns true only when the backend confirmed the set completion.
+  Future<bool> completeSet({
     required int setId,
     required int reps,
     required double weight,
     int? duration,
   }) async {
     final sessionId = state.session?.id;
-    if (sessionId == null) return;
+    if (sessionId == null) return false;
 
     // Mark set as in-flight so the UI can show a spinner if desired.
     final newCompletingIds = {...state.completingSetIds, setId};
@@ -164,10 +200,15 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
         session: updatedSession,
         completingSetIds: updated,
       );
+      return true;
     } catch (e) {
       AppLogger.error('WorkoutSessionNotifier.completeSet failed', error: e);
       final updated = <int>{...state.completingSetIds}..remove(setId);
-      state = state.copyWith(completingSetIds: updated);
+      state = state.copyWith(
+        completingSetIds: updated,
+        error: friendlyErrorMessage(e),
+      );
+      return false;
     }
   }
 
@@ -189,7 +230,10 @@ class WorkoutSessionNotifier extends Notifier<WorkoutSessionState> {
       return finished;
     } catch (e) {
       AppLogger.error('WorkoutSessionNotifier.finishWorkout failed', error: e);
-      state = state.copyWith(isFinishing: false, error: e.toString());
+      state = state.copyWith(
+        isFinishing: false,
+        error: friendlyErrorMessage(e),
+      );
       return null;
     }
   }

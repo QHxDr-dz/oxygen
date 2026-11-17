@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../constants/api_constants.dart';
 import '../../constants/app_constants.dart';
 import '../../storage/secure_storage.dart';
 import '../../network/api_exception.dart';
@@ -8,8 +9,9 @@ import '../../utils/logger.dart';
 /// On 401 response, clears token and throws [UnauthorizedException].
 class AuthInterceptor extends Interceptor {
   final SecureStorage _secureStorage;
+  final void Function()? onUnauthorized;
 
-  AuthInterceptor(this._secureStorage);
+  AuthInterceptor(this._secureStorage, {this.onUnauthorized});
 
   @override
   void onRequest(
@@ -31,11 +33,17 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
+    final path = err.requestOptions.path;
+    final isAuthEndpoint =
+        path == ApiConstants.login || path == ApiConstants.register;
+
+    // A 401 from login/register means "bad credentials", not "session expired".
+    if (err.response?.statusCode == 401 && !isAuthEndpoint) {
       AppLogger.warning('AuthInterceptor: 401 received, clearing token');
       try {
         await _secureStorage.delete(AppConstants.authTokenKey);
       } catch (_) {}
+      onUnauthorized?.call();
       handler.reject(
         DioException(
           requestOptions: err.requestOptions,

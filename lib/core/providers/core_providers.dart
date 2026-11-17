@@ -1,6 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../network/auth_event_bus.dart';
 import '../network/dio_client.dart';
 import '../storage/local_storage.dart';
 import '../storage/secure_storage.dart';
@@ -23,7 +24,8 @@ final localStorageProvider = Provider<LocalStorage>((ref) {
 /// Dio HTTP client — depends on secure storage for auth token injection.
 final dioClientProvider = Provider<DioClient>((ref) {
   final secureStorage = ref.watch(secureStorageProvider);
-  return DioClient(secureStorage);
+  final authEventBus = ref.watch(authEventBusProvider.notifier);
+  return DioClient(secureStorage, authEventBus: authEventBus);
 });
 
 /// Connectivity monitor.

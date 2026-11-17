@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../config/environment.dart';
 import '../network/api_exception.dart';
+import '../network/auth_event_bus.dart';
 import '../network/interceptors/auth_interceptor.dart';
 import '../network/interceptors/logging_interceptor.dart';
 import '../network/interceptors/retry_interceptor.dart';
@@ -12,7 +13,7 @@ import '../utils/logger.dart';
 class DioClient {
   late final Dio _dio;
 
-  DioClient(SecureStorage secureStorage) {
+  DioClient(SecureStorage secureStorage, {AuthEventBus? authEventBus}) {
     _dio = Dio(
       BaseOptions(
         baseUrl: Environment.baseUrl,
@@ -28,7 +29,10 @@ class DioClient {
     // Order matters: logging → auth → retry
     _dio.interceptors.addAll([
       LoggingInterceptor(),
-      AuthInterceptor(secureStorage),
+      AuthInterceptor(
+        secureStorage,
+        onUnauthorized: authEventBus?.emitUnauthorized,
+      ),
       RetryInterceptor(_dio, maxRetries: Environment.maxRetries),
     ]);
   }

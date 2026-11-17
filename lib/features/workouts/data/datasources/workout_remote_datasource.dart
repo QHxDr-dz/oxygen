@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/utils/logger.dart';
@@ -48,23 +49,32 @@ class WorkoutRemoteDataSource {
   }
 
   Future<WorkoutSessionModel?> getCurrentSession() async {
-    final response = await _dioClient.get<Map<String, dynamic>>(
-      ApiConstants.currentWorkout,
-    );
-    final data = response.data!;
-    final payload = data['data'];
-    if (payload == null) return null;
-    return WorkoutSessionModel.fromJson(payload as Map<String, dynamic>);
+    try {
+      final response = await _dioClient.get<Map<String, dynamic>>(
+        ApiConstants.currentWorkout,
+      );
+      final data = response.data!;
+      final payload = data['data'];
+      if (payload == null) return null;
+      return WorkoutSessionModel.fromJson(payload as Map<String, dynamic>);
+    } on NotFoundException {
+      // The backend uses 404 to signal "no active session".
+      return null;
+    }
   }
 
   Future<WorkoutSessionModel?> getWorkoutSession(int assignmentId) async {
-    final response = await _dioClient.get<Map<String, dynamic>>(
-      ApiConstants.workoutSession(assignmentId),
-    );
-    final data = response.data!;
-    final payload = data['data'];
-    if (payload == null) return null;
-    return WorkoutSessionModel.fromJson(payload as Map<String, dynamic>);
+    try {
+      final response = await _dioClient.get<Map<String, dynamic>>(
+        ApiConstants.workoutSession(assignmentId),
+      );
+      final data = response.data!;
+      final payload = data['data'];
+      if (payload == null) return null;
+      return WorkoutSessionModel.fromJson(payload as Map<String, dynamic>);
+    } on NotFoundException {
+      return null;
+    }
   }
 
   Future<WorkoutSessionModel> completeSet({

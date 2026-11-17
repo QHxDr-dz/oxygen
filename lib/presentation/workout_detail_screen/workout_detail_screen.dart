@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/network/api_exception.dart';
+import '../../features/providers.dart';
 import '../../features/workouts/domain/entities/workout_entities.dart';
 import '../../features/workouts/presentation/providers/workout_state_notifier.dart';
 import '../../routes/app_routes.dart';
@@ -20,6 +22,8 @@ class WorkoutDetailScreen extends ConsumerStatefulWidget {
 
 class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
   WorkoutAssignmentEntity? _assignment;
+  bool _isDetailLoading = true;
+  String? _detailError;
 
   @override
   void initState() {
@@ -29,32 +33,39 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
     });
   }
 
-  void _loadAssignment() {
-    final state = ref.read(workoutNotifierProvider);
-    if (state.assignments.isEmpty) {
-      ref.read(workoutNotifierProvider.notifier).loadWorkouts().then((_) {
-        _findAssignment();
+  Future<void> _loadAssignment() async {
+    if (!mounted) return;
+    setState(() => _isDetailLoading = true);
+    try {
+      final detail = await ref
+          .read(getWorkoutDetailUseCaseProvider)
+          .call(widget.assignmentId);
+      if (!mounted) return;
+      setState(() {
+        _assignment = detail;
+        _detailError = null;
       });
-    } else {
-      _findAssignment();
-    }
-  }
-
-  void _findAssignment() {
-    final state = ref.read(workoutNotifierProvider);
-    final found = state.assignments
-        .where((a) => a.id == widget.assignmentId)
-        .firstOrNull;
-    if (mounted) {
-      setState(() => _assignment = found);
+    } catch (e) {
+      // Fall back to an already-cached list entry when the detail endpoint is
+      // unavailable; otherwise surface a safe, user-facing error.
+      final cached = ref
+          .read(workoutNotifierProvider)
+          .assignments
+          .where((a) => a.id == widget.assignmentId)
+          .firstOrNull;
+      if (!mounted) return;
+      setState(() {
+        _assignment = cached;
+        _detailError = cached == null ? friendlyErrorMessage(e) : null;
+      });
+    } finally {
+      if (mounted) setState(() => _isDetailLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final workoutState = ref.watch(workoutNotifierProvider);
-
-    if (_assignment == null && workoutState.isLoading) {
+    if (_assignment == null && _isDetailLoading) {
       return Scaffold(
         backgroundColor: AppTheme.backgroundDark,
         body: SafeArea(
@@ -88,11 +99,28 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
           child: Column(
             children: [
               _buildAppBar(context, null),
-              const Expanded(
+              Expanded(
                 child: Center(
-                  child: Text(
-                    'Program not found',
-                    style: TextStyle(color: AppTheme.textSecondaryDark),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _detailError ?? 'Program not found',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppTheme.textSecondaryDark,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _loadAssignment,
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

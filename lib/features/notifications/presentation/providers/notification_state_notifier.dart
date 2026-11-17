@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/notification_entity.dart';
 import '../../../providers.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/logger.dart';
 
 /// Flat state class for paginated notifications UI.
@@ -83,7 +84,10 @@ class NotificationNotifier extends Notifier<NotificationState> {
           hasReachedEnd: true,
         );
       } catch (_) {
-        state = state.copyWith(isLoading: false, error: e.toString());
+        state = state.copyWith(
+          isLoading: false,
+          error: friendlyErrorMessage(e),
+        );
       }
     }
   }

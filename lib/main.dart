@@ -7,6 +7,7 @@ import 'package:sizer/sizer.dart';
 
 import './core/storage/local_storage.dart';
 import './core/utils/logger.dart';
+import './features/authentication/presentation/providers/auth_notifier.dart';
 import './widgets/custom_error_widget.dart';
 import 'core/app_export.dart';
 import 'core/providers/core_providers.dart';
@@ -15,21 +16,11 @@ import 'l10n/app_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  bool hasShownError = false;
-
   // 🚨 CRITICAL: Custom error handling - DO NOT REMOVE
+  // Always show the branded error UI. The previous "show once" flag produced
+  // a blank screen for any subsequent error within five seconds.
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    if (!hasShownError) {
-      hasShownError = true;
-
-      // Reset flag after 3 seconds to allow error widget on new screens
-      Future.delayed(Duration(seconds: 5), () {
-        hasShownError = false;
-      });
-
-      return CustomErrorWidget(errorDetails: details);
-    }
-    return SizedBox.shrink();
+    return CustomErrorWidget(errorDetails: details);
   };
 
   // Initialize local storage before app starts
@@ -81,6 +72,16 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Navigate to login when a session is invalidated away from the auth flow.
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      if (previous != null &&
+          previous.isAuthenticated &&
+          !next.isAuthenticated &&
+          next.isInitialized) {
+        appRouter.go(AppRoutes.loginScreen);
+      }
+    });
+
     return Sizer(
       builder: (context, orientation, screenType) {
         return MaterialApp.router(

@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
+import '../../constants/api_constants.dart';
 import '../../utils/logger.dart';
 
 /// Automatically retries failed requests on network errors.
@@ -21,7 +24,10 @@ class RetryInterceptor extends Interceptor {
     }
 
     final nextAttempt = attempt + 1;
-    final delay = Duration(milliseconds: 500 * nextAttempt);
+    // Exponential backoff with jitter avoids thundering-herd retries.
+    final baseMs = 400 * math.pow(2, nextAttempt - 1);
+    final jitterMs = math.Random().nextInt(200);
+    final delay = Duration(milliseconds: baseMs.toInt() + jitterMs);
 
     AppLogger.warning(
       'RetryInterceptor: attempt $nextAttempt/$maxRetries after ${delay.inMilliseconds}ms',
@@ -36,11 +42,23 @@ class RetryInterceptor extends Interceptor {
       final response = await _dio.fetch(options);
       handler.resolve(response);
     } on DioException catch (retryErr) {
-      handler.next(retryErr);
+      handler.reject(retryErr);
     }
   }
 
   bool _isRetryable(DioException err) {
+    // Only retry operations that are safe to repeat. Retrying POSTs can create
+    // duplicate workout sessions / set completions when the server committed
+    // the write but the response was lost.
+    final method = err.requestOptions.method.toUpperCase();
+    const idempotentMethods = {'GET', 'HEAD', 'OPTIONS'};
+    if (!idempotentMethods.contains(method)) return false;
+
+    final path = err.requestOptions.path;
+    if (path == ApiConstants.login || path == ApiConstants.register) {
+      return false;
+    }
+
     switch (err.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:

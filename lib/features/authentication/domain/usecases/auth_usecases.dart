@@ -58,6 +58,14 @@ class IsAuthenticatedUseCase {
   Future<bool> call() => _repository.isAuthenticated();
 }
 
+/// Use case: Restore the cached authenticated session without network access.
+class GetCachedAuthUseCase {
+  final AuthRepository _repository;
+  const GetCachedAuthUseCase(this._repository);
+
+  Future<AuthResultEntity?> call() => _repository.getCachedAuth();
+}
+
 /// Use case: Change user password.
 class ChangePasswordUseCase {
   final AuthRepository _repository;

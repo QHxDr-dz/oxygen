@@ -67,9 +67,23 @@ class AuthRemoteDataSource {
       ApiConstants.me,
     );
     final data = response.data!;
-    // /me may return data wrapped or flat
-    final payload = data['data'] as Map<String, dynamic>? ?? data;
-    final model = AuthResponseModel.fromJson(payload);
+    // Laravel endpoints may wrap the payload in `data`. Some deployments also
+    // return the user fields at the root, so support both shapes.
+    final payload = data['data'] is Map<String, dynamic>
+        ? data['data'] as Map<String, dynamic>
+        : data;
+    final storedToken = await _secureStorage.read(AppConstants.authTokenKey);
+    final model = AuthResponseModel(
+      token: payload['token'] as String? ?? storedToken ?? '',
+      user: UserModel.fromJson(
+        payload['user'] is Map<String, dynamic>
+            ? payload['user'] as Map<String, dynamic>
+            : payload,
+      ),
+      member: payload['member'] is Map<String, dynamic>
+          ? MemberModel.fromJson(payload['member'] as Map<String, dynamic>)
+          : null,
+    );
 
     // Refresh local cache
     await _localStorage.setJson(AppConstants.userDataKey, model.user.toJson());
@@ -137,12 +151,16 @@ class AuthRemoteDataSource {
   }
 
   /// Returns cached user from local storage (no network call).
-  AuthResponseModel? getCachedAuth() {
+  /// The token is read from secure storage so the entity remains a valid
+  /// authenticated session when the API is temporarily unreachable.
+  Future<AuthResponseModel?> getCachedAuth() async {
+    final token = await _secureStorage.read(AppConstants.authTokenKey);
+    if (token == null || token.isEmpty) return null;
     final userData = _localStorage.getJson(AppConstants.userDataKey);
     if (userData == null) return null;
     final memberData = _localStorage.getJson(AppConstants.memberDataKey);
     return AuthResponseModel(
-      token: '',
+      token: token,
       user: UserModel.fromJson(userData),
       member: memberData != null ? MemberModel.fromJson(memberData) : null,
     );

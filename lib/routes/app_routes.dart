@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/authentication/presentation/providers/auth_notifier.dart';
 import '../presentation/about_screen/about_screen.dart';
 import '../presentation/dashboard_screen/dashboard_screen.dart';
 import '../presentation/help_screen/help_screen.dart';
@@ -71,6 +73,26 @@ CustomTransitionPage _slidePage(Widget child, GoRouterState state) {
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.initial,
+  redirect: (context, state) {
+    final auth = ProviderScope.containerOf(context).read(authNotifierProvider);
+    if (!auth.isInitialized) return null;
+
+    final location = state.matchedLocation;
+    final isEntryRoute =
+        location == AppRoutes.initial ||
+        location == AppRoutes.loginScreen ||
+        location == AppRoutes.registerScreen;
+
+    if (auth.isAuthenticated &&
+        (location == AppRoutes.loginScreen ||
+            location == AppRoutes.registerScreen)) {
+      return AppRoutes.dashboardScreen;
+    }
+    if (!auth.isAuthenticated && !isEntryRoute) {
+      return AppRoutes.loginScreen;
+    }
+    return null;
+  },
   routes: [
     GoRoute(
       path: AppRoutes.splashScreen,

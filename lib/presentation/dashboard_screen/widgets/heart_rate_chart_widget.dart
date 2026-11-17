@@ -62,6 +62,13 @@ class _HeartRateChartWidgetState extends State<HeartRateChartWidget>
 
   @override
   Widget build(BuildContext context) {
+    final data = widget.heartRateData;
+    final hasData = data.isNotEmpty;
+    final peak = hasData ? data.reduce((a, b) => a > b ? a : b).round() : 0;
+    final average = hasData
+        ? (data.reduce((a, b) => a + b) / data.length).round()
+        : 0;
+
     return FadeTransition(
       opacity: _fadeAnim,
       child: Container(
@@ -162,7 +169,7 @@ class _HeartRateChartWidgetState extends State<HeartRateChartWidget>
                   style: TextStyle(fontSize: 12, color: AppTheme.textMutedDark),
                 ),
                 Text(
-                  '${widget.heartRateData.reduce((a, b) => a > b ? a : b).round()} BPM',
+                  hasData ? '$peak BPM' : '—',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -175,7 +182,7 @@ class _HeartRateChartWidgetState extends State<HeartRateChartWidget>
                   style: TextStyle(fontSize: 12, color: AppTheme.textMutedDark),
                 ),
                 Text(
-                  '${(widget.heartRateData.reduce((a, b) => a + b) / widget.heartRateData.length).round()} BPM',
+                  hasData ? '$average BPM' : '—',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -185,86 +192,116 @@ class _HeartRateChartWidgetState extends State<HeartRateChartWidget>
               ],
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              height: 160,
-              child: BarChart(
-                BarChartData(
-                  maxY: 200,
-                  minY: 0,
-                  barGroups: _buildBarGroups(),
-                  barTouchData: BarTouchData(
-                    touchCallback: (event, response) {
-                      setState(() {
-                        if (response?.spot != null) {
-                          _touchedIndex = response!.spot!.touchedBarGroupIndex;
-                        } else {
-                          _touchedIndex = null;
-                        }
-                      });
-                    },
-                    touchTooltipData: BarTouchTooltipData(
-                      tooltipBgColor: AppTheme.surfaceDark.withAlpha(242),
-                      tooltipRoundedRadius: 8,
-                      tooltipBorder: const BorderSide(
-                        color: AppTheme.borderDark,
-                        width: 0.5,
-                      ),
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        return BarTooltipItem(
-                          '${rod.toY.round()} BPM',
-                          const TextStyle(
-                            color: AppTheme.textPrimaryDark,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
+            if (!hasData)
+              _buildEmptyState()
+            else
+              SizedBox(
+                height: 160,
+                child: BarChart(
+                  BarChartData(
+                    maxY: 200,
+                    minY: 0,
+                    barGroups: _buildBarGroups(),
+                    barTouchData: BarTouchData(
+                      touchCallback: (event, response) {
+                        setState(() {
+                          if (response?.spot != null) {
+                            _touchedIndex =
+                                response!.spot!.touchedBarGroupIndex;
+                          } else {
+                            _touchedIndex = null;
+                          }
+                        });
                       },
-                    ),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 50,
-                    getDrawingHorizontalLine: (_) => FlLine(
-                      color: AppTheme.borderDark.withAlpha(128),
-                      strokeWidth: 0.5,
-                      dashArray: [4, 4],
-                    ),
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 32,
-                        interval: 50,
-                        getTitlesWidget: (value, meta) {
-                          if (value == 0) return const SizedBox();
-                          return Text(
-                            '${value.round()}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppTheme.textMutedDark,
+                      touchTooltipData: BarTouchTooltipData(
+                        tooltipBgColor: AppTheme.surfaceDark.withAlpha(242),
+                        tooltipRoundedRadius: 8,
+                        tooltipBorder: const BorderSide(
+                          color: AppTheme.borderDark,
+                          width: 0.5,
+                        ),
+                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                          return BarTooltipItem(
+                            '${rod.toY.round()} BPM',
+                            const TextStyle(
+                              color: AppTheme.textPrimaryDark,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           );
                         },
                       ),
                     ),
-                    bottomTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      horizontalInterval: 50,
+                      getDrawingHorizontalLine: (_) => FlLine(
+                        color: AppTheme.borderDark.withAlpha(128),
+                        strokeWidth: 0.5,
+                        dashArray: [4, 4],
+                      ),
                     ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 32,
+                          interval: 50,
+                          getTitlesWidget: (value, meta) {
+                            if (value == 0) return const SizedBox();
+                            return Text(
+                              '${value.round()}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppTheme.textMutedDark,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      bottomTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                     ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
+                    borderData: FlBorderData(show: false),
                   ),
-                  borderData: FlBorderData(show: false),
                 ),
               ),
-            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      height: 160,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundDark.withAlpha(128),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.monitor_heart_outlined,
+            size: 28,
+            color: AppTheme.textMutedDark,
+          ),
+          SizedBox(height: 8),
+          Text(
+            'No heart-rate data yet',
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryDark),
+          ),
+        ],
       ),
     );
   }

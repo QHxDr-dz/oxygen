@@ -57,6 +57,10 @@ final isAuthenticatedUseCaseProvider = Provider<IsAuthenticatedUseCase>((ref) {
   return IsAuthenticatedUseCase(ref.watch(authRepositoryProvider));
 });
 
+final getCachedAuthUseCaseProvider = Provider<GetCachedAuthUseCase>((ref) {
+  return GetCachedAuthUseCase(ref.watch(authRepositoryProvider));
+});
+
 final changePasswordUseCaseProvider = Provider<ChangePasswordUseCase>((ref) {
   return ChangePasswordUseCase(ref.watch(authRepositoryProvider));
 });

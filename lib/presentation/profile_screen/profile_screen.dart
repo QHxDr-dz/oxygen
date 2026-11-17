@@ -536,6 +536,11 @@ class _QrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final token = member.qrToken;
+    final qrData = token == null || token.isEmpty
+        ? ''
+        : '${Environment.websiteUrl}/qr/member/$token';
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -612,13 +617,7 @@ class _QrCard extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Clipboard.setData(
-                      ClipboardData(
-                        text: member.qrToken == null
-                            ? ''
-                            : '${Environment.websiteUrl}/qr/member/${member.qrToken}',
-                      ),
-                    );
+                    Clipboard.setData(ClipboardData(text: qrData));
                   },
                   child: Container(
                     padding: const EdgeInsets.all(8),
@@ -656,8 +655,7 @@ class _QrCard extends StatelessWidget {
                     ],
                   ),
                   child: PrettyQrView.data(
-                    data:
-                        '${Environment.websiteUrl}/qr/member/${member.qrToken!}',
+                    data: qrData,
                     decoration: const PrettyQrDecoration(
                       shape: PrettyQrSmoothSymbol(
                         color: Color(0xFF0F172A),

@@ -43,4 +43,8 @@ abstract class AuthRepository {
 
   /// Retrieve the stored auth token.
   Future<String?> getToken();
+
+  /// Restore the last authenticated session from local caches.
+  /// Returns null when no token or cached profile is available.
+  Future<AuthResultEntity?> getCachedAuth();
 }

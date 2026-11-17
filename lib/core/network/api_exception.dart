@@ -93,3 +93,11 @@ class UnknownException extends AppException {
     super.originalError,
   });
 }
+
+/// Returns a user-safe message for any error surfaced to the UI.
+/// Typed [AppException] messages are already display-ready; raw exceptions are
+/// replaced with a generic message so internal details never leak to users.
+String friendlyErrorMessage(Object error) {
+  if (error is AppException) return error.message;
+  return 'Something went wrong. Please try again.';
+}

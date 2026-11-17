@@ -134,4 +134,19 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<String?> getToken() => _remoteDataSource.getStoredToken();
+
+  @override
+  Future<AuthResultEntity?> getCachedAuth() async {
+    try {
+      final model = await _remoteDataSource.getCachedAuth();
+      return model?.toEntity();
+    } catch (e, st) {
+      AppLogger.error(
+        'AuthRepository.getCachedAuth failed',
+        error: e,
+        stackTrace: st,
+      );
+      return null;
+    }
+  }
 }

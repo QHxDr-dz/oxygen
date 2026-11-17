@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/auth_entities.dart';
 import '../../../providers.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/auth_event_bus.dart';
 import '../../../../core/utils/logger.dart';
 
 /// Auth state — represents the current authentication status.
@@ -43,16 +45,30 @@ class AuthState {
 /// Handles login, register, logout, and session restoration.
 class AuthNotifier extends Notifier<AuthState> {
   @override
-  AuthState build() => const AuthState();
+  AuthState build() {
+    // A 401 from any request invalidates the whole session, not just that call.
+    ref.listen(authEventBusProvider, (previous, next) {
+      if (next == AuthEvent.unauthorized) {
+        state = state.copyWith(
+          clearAuth: true,
+          isLoading: false,
+          isInitialized: true,
+          error: 'Session expired. Please log in again.',
+        );
+      }
+    });
+    return const AuthState();
+  }
 
   Future<void> initialize() async {
-    state = state.copyWith(isLoading: true);
+    if (state.isInitialized || state.isLoading) return;
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final isAuthenticated = await ref
           .read(isAuthenticatedUseCaseProvider)
           .call();
       if (isAuthenticated) {
-        // Try to refresh from server, fall back to cache
+        // Try to refresh from the server, then fall back to the cached profile.
         try {
           final result = await ref.read(getMeUseCaseProvider).call();
           state = AuthState(authResult: result, isInitialized: true);
@@ -61,8 +77,12 @@ class AuthNotifier extends Notifier<AuthState> {
             'AuthNotifier: /me failed, using cached auth',
             error: e,
           );
-          // Still authenticated — token exists
-          state = AuthState(isInitialized: true);
+          final cached = await ref.read(getCachedAuthUseCaseProvider).call();
+          if (cached != null) {
+            state = AuthState(authResult: cached, isInitialized: true);
+          } else {
+            state = const AuthState(isInitialized: true);
+          }
         }
       } else {
         state = const AuthState(isInitialized: true);
@@ -80,13 +100,14 @@ class AuthNotifier extends Notifier<AuthState> {
           .read(loginUseCaseProvider)
           .call(email: email, password: password);
       state = AuthState(authResult: result, isInitialized: true);
+      ref.read(authEventBusProvider.notifier).reset();
       AppLogger.info('AuthNotifier: login successful', tag: 'Auth');
       return true;
     } catch (e) {
       AppLogger.error('AuthNotifier.login failed', error: e);
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: friendlyErrorMessage(e),
         isInitialized: true,
       );
       return false;
@@ -115,7 +136,7 @@ class AuthNotifier extends Notifier<AuthState> {
       AppLogger.error('AuthNotifier.register failed', error: e);
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: friendlyErrorMessage(e),
         isInitialized: true,
       );
       return false;
@@ -129,6 +150,7 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       AppLogger.warning('AuthNotifier.logout: error during logout', error: e);
     } finally {
+      ref.read(authEventBusProvider.notifier).reset();
       state = const AuthState(isInitialized: true);
     }
   }

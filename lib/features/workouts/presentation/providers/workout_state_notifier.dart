@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/workout_entities.dart';
 import '../../../providers.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/logger.dart';
 
 class WorkoutState {
@@ -46,7 +47,10 @@ class WorkoutStateNotifier extends Notifier<WorkoutState> {
             .getCachedWorkouts();
         state = state.copyWith(assignments: cached, isLoading: false);
       } catch (_) {
-        state = state.copyWith(isLoading: false, error: e.toString());
+        state = state.copyWith(
+          isLoading: false,
+          error: friendlyErrorMessage(e),
+        );
       }
     }
   }

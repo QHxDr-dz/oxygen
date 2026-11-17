@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/subscription_entity.dart';
 import '../../../providers.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/logger.dart';
 
 class SubscriptionState {
@@ -51,7 +52,10 @@ class SubscriptionStateNotifier extends Notifier<SubscriptionState> {
             .getCachedSubscription();
         state = state.copyWith(subscription: cached, isLoading: false);
       } catch (_) {
-        state = state.copyWith(isLoading: false, error: e.toString());
+        state = state.copyWith(
+          isLoading: false,
+          error: friendlyErrorMessage(e),
+        );
       }
     }
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/utils/logger.dart';
@@ -15,20 +16,25 @@ class SubscriptionRemoteDataSource {
   const SubscriptionRemoteDataSource(this._dioClient, this._localStorage);
 
   Future<SubscriptionModel?> getSubscription() async {
-    final response = await _dioClient.get<Map<String, dynamic>>(
-      ApiConstants.subscription,
-    );
-    final data = response.data!;
-    final payload = data['data'];
-    if (payload == null) return null;
-    final model = SubscriptionModel.fromJson(payload as Map<String, dynamic>);
+    try {
+      final response = await _dioClient.get<Map<String, dynamic>>(
+        ApiConstants.subscription,
+      );
+      final data = response.data!;
+      final payload = data['data'];
+      if (payload == null) return null;
+      final model = SubscriptionModel.fromJson(payload as Map<String, dynamic>);
 
-    // Cache
-    await _localStorage.setString(
-      AppConstants.subscriptionBox,
-      jsonEncode(payload),
-    );
-    return model;
+      // Cache
+      await _localStorage.setString(
+        AppConstants.subscriptionBox,
+        jsonEncode(payload),
+      );
+      return model;
+    } on NotFoundException {
+      // No active subscription is a valid state, not an error.
+      return null;
+    }
   }
 
   SubscriptionModel? getCachedSubscription() {
