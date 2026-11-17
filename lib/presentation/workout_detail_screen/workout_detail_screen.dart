@@ -23,6 +23,7 @@ class WorkoutDetailScreen extends ConsumerStatefulWidget {
 class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
   WorkoutAssignmentEntity? _assignment;
   bool _isDetailLoading = true;
+  bool _isLoadingAssignment = false;
   String? _detailError;
 
   @override
@@ -34,24 +35,45 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
   }
 
   Future<void> _loadAssignment() async {
-    if (!mounted) return;
+    if (!mounted || _isLoadingAssignment) return;
+
+    final assignmentId = widget.assignmentId;
+    // A missing/invalid deep-link id must never reach the detail endpoint or be
+    // silently treated as assignment 0.
+    if (assignmentId <= 0) {
+      setState(() {
+        _assignment = null;
+        _detailError = 'This workout program is unavailable.';
+        _isDetailLoading = false;
+      });
+      return;
+    }
+
+    _isLoadingAssignment = true;
     setState(() => _isDetailLoading = true);
     try {
       final detail = await ref
           .read(getWorkoutDetailUseCaseProvider)
-          .call(widget.assignmentId);
+          .call(assignmentId);
       if (!mounted) return;
       setState(() {
         _assignment = detail;
         _detailError = null;
       });
     } catch (e) {
-      // Fall back to an already-cached list entry when the detail endpoint is
-      // unavailable; otherwise surface a safe, user-facing error.
+      // The detail endpoint can be unavailable on a cold deep link. Refresh the
+      // workout list first so a cached entry can satisfy the fallback before we
+      // surface a recoverable error.
+      try {
+        await ref.read(workoutNotifierProvider.notifier).loadWorkouts();
+      } catch (_) {
+        // loadWorkouts already falls back to its own cache; still attempt the
+        // list-based fallback below even if a residual failure escapes.
+      }
       final cached = ref
           .read(workoutNotifierProvider)
           .assignments
-          .where((a) => a.id == widget.assignmentId)
+          .where((a) => a.id == assignmentId)
           .firstOrNull;
       if (!mounted) return;
       setState(() {
@@ -59,6 +81,7 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
         _detailError = cached == null ? friendlyErrorMessage(e) : null;
       });
     } finally {
+      _isLoadingAssignment = false;
       if (mounted) setState(() => _isDetailLoading = false);
     }
   }

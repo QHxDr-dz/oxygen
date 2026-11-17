@@ -1,50 +1,69 @@
 // THEME LOCK: dark — source: explicit user instruction "Dark Mode only"
 // Scaffold.backgroundColor = AppTheme.backgroundDark — ALL screens
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import 'app_tokens.dart';
+import 'app_typography.dart';
+
+/// Public theme API.
+///
+/// Existing constants remain as compatibility aliases so untouched screens keep
+/// compiling. New UI should prefer the semantic names and token classes.
 class AppTheme {
-  // Brand Colors
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryLight = Color(0xFF3B82F6);
-  static const Color primaryDark = Color(0xFF1D4ED8);
-  static const Color secondary = Color(0xFF7C3AED);
-  static const Color secondaryLight = Color(0xFF8B5CF6);
-  static const Color accent = Color(0xFFF59E0B);
-  static const Color success = Color(0xFF10B981);
-  static const Color error = Color(0xFFEF4444);
-  static const Color warning = Color(0xFFF59E0B);
+  // Brand colors — compatibility aliases.
+  static const Color primary = AppColors.primary;
+  static const Color primaryLight = AppColors.primaryBright;
+  static const Color primaryDark = AppColors.primaryDeep;
+  static const Color secondary = AppColors.secondary;
+  static const Color secondaryLight = AppColors.secondaryBright;
+  static const Color accent = AppColors.accentAmber;
+  static const Color success = AppColors.success;
+  static const Color error = AppColors.error;
+  static const Color warning = AppColors.warning;
 
-  // Dark surfaces
-  static const Color backgroundDark = Color(0xFF0F172A);
-  static const Color surfaceDark = Color(0xFF1E293B);
-  static const Color cardDark = Color(0xFF1E293B);
-  static const Color borderDark = Color(0xFF334155);
+  // New semantic names.
+  static const Color oxygenMint = AppColors.oxygenMint;
+  static const Color accentAmber = AppColors.accentAmber;
+  static const Color canvas = AppColors.canvas;
+  static const Color surface = AppColors.surface;
+  static const Color surfaceRaised = AppColors.surfaceRaised;
+  static const Color surfaceMuted = AppColors.surfaceMuted;
+  static const Color borderSubtle = AppColors.borderSubtle;
+  static const Color borderStrong = AppColors.borderStrong;
+  static const Color textPrimary = AppColors.textPrimary;
+  static const Color textSecondary = AppColors.textSecondary;
+  static const Color textMuted = AppColors.textMuted;
 
-  // Light surfaces (architecture-ready)
-  static const Color backgroundLight = Color(0xFFF8FAFC);
-  static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color cardLight = Color(0xFFFFFFFF);
-  static const Color borderLight = Color(0xFFE2E8F0);
+  // Dark surfaces — compatibility aliases.
+  static const Color backgroundDark = AppColors.canvas;
+  static const Color surfaceDark = AppColors.surface;
+  static const Color cardDark = AppColors.surface;
+  static const Color borderDark = AppColors.borderSubtle;
 
-  // Text
-  static const Color textPrimaryDark = Color(0xFFF1F5F9);
-  static const Color textSecondaryDark = Color(0xFF94A3B8);
-  static const Color textMutedDark = Color(0xFF64748B);
+  // Light surfaces — retained for API compatibility; app is dark-only.
+  static const Color backgroundLight = AppColors.backgroundLight;
+  static const Color surfaceLight = AppColors.surfaceLight;
+  static const Color cardLight = AppColors.cardLight;
+  static const Color borderLight = AppColors.borderLight;
 
-  static const Color textPrimaryLight = Color(0xFF0F172A);
-  static const Color textSecondaryLight = Color(0xFF475569);
-  static const Color textMutedLight = Color(0xFF94A3B8);
+  // Text — compatibility aliases.
+  static const Color textPrimaryDark = AppColors.textPrimary;
+  static const Color textSecondaryDark = AppColors.textSecondary;
+  static const Color textMutedDark = AppColors.textMuted;
 
-  // Gradient stops
+  static const Color textPrimaryLight = AppColors.textPrimaryLight;
+  static const Color textSecondaryLight = AppColors.textSecondaryLight;
+  static const Color textMutedLight = AppColors.textMutedLight;
+
+  // Gradient stops retained for compatibility.
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primary, secondary],
+    colors: [AppColors.primary, AppColors.secondary],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient backgroundGradient = LinearGradient(
-    colors: [Color(0xFF0F172A), Color(0xFF1E1B4B)],
+    colors: [AppColors.canvas, AppColors.surfaceRaised],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -53,155 +72,86 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
-      primary: primary,
-      onPrimary: Colors.white,
-      primaryContainer: Color(0xFF1D4ED8),
-      onPrimaryContainer: Color(0xFFBFDBFE),
-      secondary: secondary,
-      onSecondary: Colors.white,
-      secondaryContainer: Color(0xFF5B21B6),
-      onSecondaryContainer: Color(0xFFDDD6FE),
-      tertiary: accent,
-      onTertiary: Color(0xFF0F172A),
-      surface: surfaceDark,
-      onSurface: textPrimaryDark,
-      error: error,
-      onError: Colors.white,
-      outline: borderDark,
-      outlineVariant: Color(0xFF1E293B),
-      surfaceContainerHighest: Color(0xFF1E293B),
-      onSurfaceVariant: textSecondaryDark,
+      primary: AppColors.primary,
+      onPrimary: AppColors.onPrimary,
+      primaryContainer: AppColors.primaryDeep,
+      onPrimaryContainer: AppColors.primaryContainerText,
+      secondary: AppColors.secondary,
+      onSecondary: AppColors.onPrimary,
+      secondaryContainer: AppColors.secondaryContainer,
+      onSecondaryContainer: AppColors.secondaryContainerText,
+      tertiary: AppColors.accentAmber,
+      onTertiary: AppColors.onAccent,
+      surface: AppColors.surface,
+      onSurface: AppColors.onSurface,
+      error: AppColors.error,
+      onError: AppColors.onPrimary,
+      outline: AppColors.borderSubtle,
+      outlineVariant: AppColors.surfaceMuted,
+      surfaceContainerHighest: AppColors.surfaceRaised,
+      onSurfaceVariant: AppColors.onSurfaceVariant,
     ),
-    scaffoldBackgroundColor: backgroundDark,
-    textTheme: GoogleFonts.interTextTheme(
-      const TextTheme(
-        displayLarge: TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.w700,
-          color: textPrimaryDark,
-          letterSpacing: -0.5,
-        ),
-        displayMedium: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.w700,
-          color: textPrimaryDark,
-          letterSpacing: -0.5,
-        ),
-        headlineLarge: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
-          color: textPrimaryDark,
-        ),
-        headlineMedium: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: textPrimaryDark,
-        ),
-        titleLarge: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: textPrimaryDark,
-        ),
-        titleMedium: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: textPrimaryDark,
-        ),
-        bodyLarge: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
-          color: textPrimaryDark,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: textSecondaryDark,
-        ),
-        bodySmall: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          color: textMutedDark,
-        ),
-        labelLarge: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: textPrimaryDark,
-          letterSpacing: 0.1,
-        ),
-        labelMedium: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: textSecondaryDark,
-          letterSpacing: 0.2,
-        ),
-        labelSmall: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: textMutedDark,
-          letterSpacing: 0.3,
-        ),
-      ),
-    ),
-    appBarTheme: const AppBarThemeData(
+    scaffoldBackgroundColor: AppColors.canvas,
+    textTheme: AppTypography.darkTextTheme,
+    appBarTheme: AppBarThemeData(
       backgroundColor: Colors.transparent,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      iconTheme: IconThemeData(color: textPrimaryDark),
-      titleTextStyle: TextStyle(
-        fontFamily: 'Inter',
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: textPrimaryDark,
-      ),
+      elevation: AppElevation.none,
+      scrolledUnderElevation: AppElevation.none,
+      iconTheme: const IconThemeData(color: AppColors.textPrimary),
+      titleTextStyle: AppTypography.darkTextTheme.titleLarge,
     ),
     cardTheme: CardThemeData(
-      color: cardDark,
-      elevation: 0,
+      color: AppColors.surface,
+      elevation: AppElevation.card,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: borderDark, width: 0.5),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        side: const BorderSide(color: AppColors.borderSubtle, width: 1),
       ),
     ),
     inputDecorationTheme: InputDecorationThemeData(
       filled: true,
-      fillColor: surfaceDark.withAlpha(153),
+      fillColor: AppColors.surfaceMuted.withAlpha(204),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: borderDark),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        borderSide: const BorderSide(color: AppColors.borderSubtle),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: borderDark),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        borderSide: const BorderSide(color: AppColors.borderSubtle),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: primary, width: 1.5),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: error),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
-      labelStyle: const TextStyle(color: textSecondaryDark, fontSize: 14),
-      hintStyle: const TextStyle(color: textMutedDark, fontSize: 14),
+      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+      hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
     ),
-    dividerTheme: const DividerThemeData(color: borderDark, thickness: 0.5),
+    dividerTheme: const DividerThemeData(
+      color: AppColors.borderSubtle,
+      thickness: 1,
+    ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        textStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          fontFamily: 'Inter',
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+        elevation: AppElevation.none,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.control),
         ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.buttonHorizontalPadding,
+          vertical: AppSpacing.buttonVerticalPadding,
+        ),
+        textStyle: AppTypography.labelLarge,
       ),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: Colors.transparent,
-      elevation: 0,
+      elevation: AppElevation.none,
     ),
   );
 
@@ -209,17 +159,17 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: const ColorScheme.light(
-      primary: primary,
-      onPrimary: Colors.white,
-      secondary: secondary,
-      onSecondary: Colors.white,
-      surface: surfaceLight,
-      onSurface: textPrimaryLight,
-      error: error,
-      onError: Colors.white,
-      outline: borderLight,
+      primary: AppColors.primary,
+      onPrimary: AppColors.onPrimary,
+      secondary: AppColors.secondary,
+      onSecondary: AppColors.onPrimary,
+      surface: AppColors.surfaceLight,
+      onSurface: AppColors.textPrimaryLight,
+      error: AppColors.error,
+      onError: AppColors.onPrimary,
+      outline: AppColors.borderLight,
     ),
-    scaffoldBackgroundColor: backgroundLight,
-    textTheme: GoogleFonts.interTextTheme(),
+    scaffoldBackgroundColor: AppColors.backgroundLight,
+    textTheme: AppTypography.neutralLatinTextTheme,
   );
 }

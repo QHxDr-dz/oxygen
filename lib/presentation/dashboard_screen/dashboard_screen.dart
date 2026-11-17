@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/dashboard/domain/entities/dashboard_entity.dart';
 import '../../features/dashboard/presentation/providers/dashboard_notifier.dart';
-import '../../features/notifications/presentation/providers/notification_state_notifier.dart';
+import '../../features/notifications/presentation/providers/notification_notifier.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/empty_state_widget.dart';
@@ -27,16 +27,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Load notification count for badge
+    // Refresh the unread count for the badge without loading the notification
+    // list, which only ever contains the first page.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(notificationNotifierProvider.notifier).loadNotifications();
+      ref.read(notificationCountNotifierProvider.notifier).refresh();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final dashboardAsync = ref.watch(dashboardNotifierProvider);
-    final notifState = ref.watch(notificationNotifierProvider);
+    final notifCountAsync = ref.watch(notificationCountNotifierProvider);
+    final unreadCount = notifCountAsync.maybeWhen(
+      data: (count) => count.unread,
+      orElse: () => 0,
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
@@ -45,7 +50,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: dashboardAsync.when(
           loading: () => const DashboardSkeletonWidget(),
           error: (error, _) => _buildError(error.toString()),
-          data: (dashboard) => _buildContent(dashboard, notifState.unreadCount),
+          data: (dashboard) => _buildContent(dashboard, unreadCount),
         ),
       ),
     );

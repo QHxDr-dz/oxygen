@@ -101,7 +101,12 @@ class NotificationCountModel {
         : json;
     return NotificationCountModel(
       total: (payload['total'] as num?)?.toInt() ?? 0,
-      unread: (payload['unread'] as num?)?.toInt() ?? 0,
+      // Laravel's /notifications/count returns the unread total under `count`.
+      // Keep supporting `unread` (and nested `data`) for other payload shapes.
+      unread:
+          (payload['unread'] as num?)?.toInt() ??
+          (payload['count'] as num?)?.toInt() ??
+          0,
     );
   }
 

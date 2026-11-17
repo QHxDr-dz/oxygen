@@ -1,11 +1,7 @@
-import '../config/environment.dart';
-
 /// All API endpoint paths.
 /// Never hardcode paths in data sources — always reference this class.
 class ApiConstants {
   ApiConstants._();
-
-  static String get baseUrl => Environment.baseUrl;
 
   // Auth
   static const String login = '/login';

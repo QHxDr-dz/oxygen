@@ -21,7 +21,6 @@ import './workouts/data/datasources/workout_remote_datasource.dart';
 import './workouts/data/repositories/workout_repository_impl.dart';
 import './workouts/domain/repositories/workout_repository.dart';
 import './workouts/domain/usecases/workout_usecases.dart';
-import './workouts/presentation/providers/workout_session_notifier.dart';
 
 // ─── Authentication ──────────────────────────────────────────────────────────
 
@@ -59,14 +58,6 @@ final isAuthenticatedUseCaseProvider = Provider<IsAuthenticatedUseCase>((ref) {
 
 final getCachedAuthUseCaseProvider = Provider<GetCachedAuthUseCase>((ref) {
   return GetCachedAuthUseCase(ref.watch(authRepositoryProvider));
-});
-
-final changePasswordUseCaseProvider = Provider<ChangePasswordUseCase>((ref) {
-  return ChangePasswordUseCase(ref.watch(authRepositoryProvider));
-});
-
-final updateProfileUseCaseProvider = Provider<UpdateProfileUseCase>((ref) {
-  return UpdateProfileUseCase(ref.watch(authRepositoryProvider));
 });
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
@@ -142,13 +133,6 @@ final getWorkoutHistoryUseCaseProvider = Provider<GetWorkoutHistoryUseCase>((
 ) {
   return GetWorkoutHistoryUseCase(ref.watch(workoutRepositoryProvider));
 });
-
-// ─── Workout Session ─────────────────────────────────────────────────────────
-
-final workoutSessionProvider =
-    NotifierProvider.family<WorkoutSessionNotifier, WorkoutSessionState, int?>(
-      (arg) => WorkoutSessionNotifier(),
-    );
 
 // ─── Notifications ───────────────────────────────────────────────────────────
 

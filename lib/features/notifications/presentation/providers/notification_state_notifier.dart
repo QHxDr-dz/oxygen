@@ -4,6 +4,7 @@ import '../../domain/entities/notification_entity.dart';
 import '../../../providers.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/logger.dart';
+import 'notification_notifier.dart';
 
 /// Flat state class for paginated notifications UI.
 class NotificationState {
@@ -114,7 +115,7 @@ class NotificationNotifier extends Notifier<NotificationState> {
     }
   }
 
-  Future<void> markRead(String id) async {
+  Future<bool> _markReadLocally(String id) async {
     try {
       await ref.read(markNotificationReadUseCaseProvider).call(id);
       final updated = state.notifications.map((n) {
@@ -131,16 +132,27 @@ class NotificationNotifier extends Notifier<NotificationState> {
         return n;
       }).toList();
       state = state.copyWith(notifications: updated);
+      return true;
     } catch (e) {
       AppLogger.error('NotificationNotifier.markRead failed', error: e);
+      return false;
+    }
+  }
+
+  Future<void> markRead(String id) async {
+    if (await _markReadLocally(id)) {
+      ref.invalidate(notificationCountNotifierProvider);
     }
   }
 
   Future<void> markAllRead() async {
     final unread = state.notifications.where((n) => n.isUnread).toList();
+    var changed = false;
     for (final n in unread) {
-      await markRead(n.id);
+      if (await _markReadLocally(n.id)) changed = true;
     }
+    // Refresh once for the whole batch rather than once per item.
+    if (changed) ref.invalidate(notificationCountNotifierProvider);
   }
 
   Future<void> deleteNotification(String id) async {
@@ -149,6 +161,7 @@ class NotificationNotifier extends Notifier<NotificationState> {
       state = state.copyWith(
         notifications: state.notifications.where((n) => n.id != id).toList(),
       );
+      ref.invalidate(notificationCountNotifierProvider);
     } catch (e) {
       AppLogger.error(
         'NotificationNotifier.deleteNotification failed',
