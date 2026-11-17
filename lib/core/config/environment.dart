@@ -44,4 +44,18 @@ class Environment {
   static int get connectTimeoutMs => 15000;
   static int get receiveTimeoutMs => 30000;
   static int get maxRetries => 3;
+
+static String get websiteUrl {
+  switch (current) {
+    case AppEnvironment.staging:
+      return 'https://staging.oxygenclub.app';
+
+    case AppEnvironment.production:
+      return 'https://api.oxygenclub.app'; // غيّرها إذا كان موقعك العام ليس على api.
+                                           // مثلاً: https://oxygenclub.app
+
+    default:
+      return 'http://192.168.0.166:8000';
+  }
+}
 }

@@ -1,0 +1,19 @@
+{
+  "@@locale": "en",
+
+  "appName": "Oxygen Club",
+
+  "login": "Login",
+
+  "email": "Email",
+
+  "password": "Password",
+
+  "profile": "Profile",
+
+  "settings": "Settings",
+
+  "logout": "Logout",
+
+  "dashboard": "Dashboard"
+}

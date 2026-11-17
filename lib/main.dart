@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:sizer/sizer.dart';
 
 import './core/storage/local_storage.dart';
@@ -9,6 +10,7 @@ import './core/utils/logger.dart';
 import './widgets/custom_error_widget.dart';
 import 'core/app_export.dart';
 import 'core/providers/core_providers.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -98,6 +100,25 @@ class _MyAppState extends ConsumerState<MyApp> {
           // 🚨 END CRITICAL SECTION
           debugShowCheckedModeBanner: false,
           routerConfig: appRouter,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en'),
+            Locale('ar'),
+          ],
+          localeResolutionCallback: (locale, supportedLocales) {
+            if (locale == null) {
+              return const Locale('en');
+            }
+            if (locale.languageCode == 'ar') {
+              return const Locale('ar');
+            }
+            return const Locale('en');
+          },
         );
       },
     );

@@ -10,6 +10,7 @@ import '../../features/authentication/presentation/providers/auth_notifier.dart'
 import '../../features/subscription/presentation/providers/subscription_state_notifier.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_theme.dart';
+import '../../core/config/environment.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -439,15 +440,15 @@ class _AvatarWidget extends StatelessWidget {
   }
 
   Widget get _fallback => Center(
-    child: Text(
-      _initials,
-      style: const TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.w700,
-        color: Colors.white,
-      ),
-    ),
-  );
+        child: Text(
+          _initials,
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -612,7 +613,11 @@ class _QrCard extends StatelessWidget {
                 GestureDetector(
                   onTap: () {
                     Clipboard.setData(
-                      ClipboardData(text: member.qrToken ?? ''),
+                      ClipboardData(
+                        text: member.qrToken == null
+                            ? ''
+                            : '${Environment.websiteUrl}/qr/member/${member.qrToken}',
+                      ),
                     );
                   },
                   child: Container(
@@ -632,7 +637,6 @@ class _QrCard extends StatelessWidget {
               ],
             ),
           ),
-
           // QR Code
           Padding(
             padding: const EdgeInsets.all(24),
@@ -652,9 +656,12 @@ class _QrCard extends StatelessWidget {
                     ],
                   ),
                   child: PrettyQrView.data(
-                    data: member.qrToken!,
+                    data:
+                        '${Environment.websiteUrl}/qr/member/${member.qrToken!}',
                     decoration: const PrettyQrDecoration(
-                      shape: PrettyQrSmoothSymbol(color: Color(0xFF0F172A)),
+                      shape: PrettyQrSmoothSymbol(
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
                   ),
                 ),
